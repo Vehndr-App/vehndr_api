@@ -46,6 +46,7 @@ puts "Creating vendors..."
 
 artisan_alley = Vendor.create!(
   id: 'vendor_artisan_1',
+  user: vendor_user,
   name: 'Artisan Alley',
   description: 'Handcrafted jewelry, pottery, and unique art pieces from local artisans',
   hero_image: '/placeholder.svg?height=400&width=800&text=Artisan+Alley',
@@ -518,7 +519,7 @@ EventCoordinator.create!([
 ])
 
 # Create some sample carts and orders for demonstration
-puts "Creating sample cart items..."
+puts "Creating sample cart items and orders..."
 
 # Create a cart for the demo customer
 customer_cart = customer.carts.create!
@@ -551,6 +552,51 @@ CartItem.create!([
     }
   }
 ])
+
+# Create sample orders for Artisan Alley (linked to Demo Vendor user)
+puts "Creating sample orders for Artisan Alley..."
+
+# Completed order from yesterday
+order1 = Order.create!(
+  user: customer,
+  vendor: artisan_alley,
+  total_cents: 13000, # $130.00
+  status: 'completed',
+  created_at: 1.day.ago
+)
+
+OrderItem.create!(
+  order: order1,
+  product: handmade_necklace,
+  quantity: 1,
+  price_cents: 8500,
+  selected_options: { 'length' => '20 inches' }
+)
+
+OrderItem.create!(
+  order: order1,
+  product: ceramic_bowl,
+  quantity: 1,
+  price_cents: 4500,
+  selected_options: { 'size' => 'Small (6")', 'color' => 'Ocean Blue' }
+)
+
+# Pending order from today
+order2 = Order.create!(
+  user: customer,
+  vendor: artisan_alley,
+  total_cents: 4500, # $45.00
+  status: 'pending',
+  created_at: 2.hours.ago
+)
+
+OrderItem.create!(
+  order: order2,
+  product: ceramic_bowl,
+  quantity: 1,
+  price_cents: 4500,
+  selected_options: { 'size' => 'Medium (8")', 'color' => 'Natural Clay' }
+)
 
 puts "✅ Database seeded successfully!"
 puts "📊 Created:"

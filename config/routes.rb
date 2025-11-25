@@ -1,9 +1,16 @@
 Rails.application.routes.draw do
+  # Mount ActionCable
+  mount ActionCable.server => '/cable'
+  
   namespace :api do
+    # Test endpoint for creating orders with broadcasts (development only)
+    post 'test_orders', to: 'test_orders#create' if Rails.env.development?
+    
     # Vendors
     resources :vendors, only: [:index, :show] do
       member do
         get 'products'
+        get 'orders'
       end
     end
 

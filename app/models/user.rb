@@ -2,6 +2,7 @@ class User < ApplicationRecord
   has_secure_password
 
   # Relationships
+  has_one :vendor_profile, class_name: 'Vendor', dependent: :destroy
   has_many :carts, dependent: :destroy
   has_many :orders, dependent: :nullify
 

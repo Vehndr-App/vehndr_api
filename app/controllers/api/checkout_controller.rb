@@ -125,10 +125,35 @@ module Api
         )
 
         order.create_from_cart_items!(items)
+        
+        # Trigger webhook to frontend or external system for this vendor order
+        trigger_vendor_webhook(order)
       end
 
       # Clear the cart
       cart.cart_items.destroy_all
+    end
+
+    def trigger_vendor_webhook(order)
+      # Broadcast to ActionCable channel for real-time dashboard updates
+      VendorOrdersChannel.broadcast_to(
+        order.vendor,
+        {
+          event: 'order.created',
+          order: {
+            id: order.id,
+            total_cents: order.total_cents,
+            status: order.status,
+            created_at: order.created_at,
+            user: {
+              name: order.user.name,
+              email: order.user.email
+            }
+          }
+        }
+      )
+      
+      Rails.logger.info "ActionCable broadcast: New Order ##{order.id} for Vendor #{order.vendor.name}"
     end
 
     def format_options(options)

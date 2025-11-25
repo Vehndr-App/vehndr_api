@@ -3,6 +3,7 @@ class Vendor < ApplicationRecord
   before_create :generate_vendor_id
 
   # Relationships
+  belongs_to :user, optional: true
   has_many :products, dependent: :destroy
   has_many :orders, dependent: :nullify
   has_many :cart_items, dependent: :destroy
