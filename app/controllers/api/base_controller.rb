@@ -29,10 +29,10 @@ module Api
 
     def current_user
       return @current_user if defined?(@current_user)
-      
+
       header = request.headers['Authorization']
       header = header.split(' ').last if header
-      
+
       if header
         begin
           decoded = JsonWebToken.decode(header)
@@ -41,8 +41,15 @@ module Api
           @current_user = nil
         end
       end
-      
+
       @current_user
+    end
+
+    def authenticate_request
+      unless current_user
+        render json: { error: 'Not authorized' }, status: :unauthorized
+        return
+      end
     end
 
     def not_found(exception)

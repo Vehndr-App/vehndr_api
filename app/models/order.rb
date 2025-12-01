@@ -6,6 +6,7 @@ class Order < ApplicationRecord
   belongs_to :user
   belongs_to :vendor
   has_many :order_items, dependent: :destroy
+  has_many :products, through: :order_items
 
   # Validations
   validates :total_cents, presence: true, numericality: { greater_than: 0 }

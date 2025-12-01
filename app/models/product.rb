@@ -1,6 +1,13 @@
 class Product < ApplicationRecord
+  vectorsearch
+
+  after_save :upsert_to_vectorsearch
+
   self.primary_key = :id
   before_create :generate_product_id
+
+  # Active Storage attachments
+  has_many_attached :images
 
   # Relationships
   belongs_to :vendor
@@ -22,6 +29,34 @@ class Product < ApplicationRecord
 
   def price_in_dollars
     price / 100.0 if price
+  end
+
+  # Get the primary image (first image)
+  def primary_image_url
+    if images.attached? && images.first.present?
+      begin
+        Rails.application.routes.url_helpers.url_for(images.first)
+      rescue ArgumentError => e
+        Rails.logger.error "Failed to generate image URL: #{e.message}"
+        nil
+      end
+    else
+      nil
+    end
+  end
+
+  # Get all image URLs
+  def image_urls
+    return [] unless images.attached?
+
+    images.map do |img|
+      begin
+        Rails.application.routes.url_helpers.url_for(img)
+      rescue ArgumentError => e
+        Rails.logger.error "Failed to generate image URL: #{e.message}"
+        nil
+      end
+    end.compact
   end
 
   private

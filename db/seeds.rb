@@ -561,7 +561,7 @@ order1 = Order.create!(
   user: customer,
   vendor: artisan_alley,
   total_cents: 13000, # $130.00
-  status: 'completed',
+  status: 'confirmed',
   created_at: 1.day.ago
 )
 
@@ -586,7 +586,7 @@ order2 = Order.create!(
   user: customer,
   vendor: artisan_alley,
   total_cents: 4500, # $45.00
-  status: 'pending',
+  status: 'confirmed',
   created_at: 2.hours.ago
 )
 

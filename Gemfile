@@ -41,11 +41,16 @@ gem "jwt"
 # Stripe for payment processing
 gem "stripe"
 
+# OpenAI for event scraping
+gem "ruby-openai"
+
 # JSON serialization with camelCase support
 gem "active_model_serializers"
 
 # UUID generation
 gem "nanoid"
+
+gem "langchainrb_rails"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
@@ -57,3 +62,5 @@ group :development, :test do
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
 end
+gem "neighbor"
+gem "ruby-openai"

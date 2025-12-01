@@ -1,4 +1,9 @@
 class Event < ApplicationRecord
+  vectorsearch
+
+  after_save :upsert_to_vectorsearch
+  
+  belongs_to :coordinator, class_name: 'EventCoordinator', foreign_key: :coordinator_id, primary_key: :id, optional: true
   has_many :event_vendors, dependent: :destroy
   has_many :vendors, through: :event_vendors
 

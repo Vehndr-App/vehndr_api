@@ -1,6 +1,13 @@
 class Vendor < ApplicationRecord
+  vectorsearch
+
+  after_save :upsert_to_vectorsearch
+
   self.primary_key = :id
   before_create :generate_vendor_id
+
+  # Active Storage
+  has_one_attached :hero_image
 
   # Relationships
   belongs_to :user, optional: true
@@ -16,6 +23,13 @@ class Vendor < ApplicationRecord
 
   # Scopes
   scope :by_category, ->(category) { where("? = ANY(categories)", category) }
+
+  # Instance methods
+  def hero_image_url
+    return nil unless hero_image.attached?
+    # Use url_for with host to generate full URL for API responses
+    Rails.application.routes.url_helpers.url_for(hero_image)
+  end
 
   private
 

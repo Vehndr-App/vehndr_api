@@ -3,6 +3,7 @@ class User < ApplicationRecord
 
   # Relationships
   has_one :vendor_profile, class_name: 'Vendor', dependent: :destroy
+  has_one :coordinator_profile, class_name: 'EventCoordinator', dependent: :destroy
   has_many :carts, dependent: :destroy
   has_many :orders, dependent: :nullify
 

@@ -1,13 +1,13 @@
 Rails.application.routes.draw do
   # Mount ActionCable
   mount ActionCable.server => '/cable'
-  
+
   namespace :api do
     # Test endpoint for creating orders with broadcasts (development only)
     post 'test_orders', to: 'test_orders#create' if Rails.env.development?
     
     # Vendors
-    resources :vendors, only: [:index, :show] do
+    resources :vendors, only: [:index, :show, :create, :update] do
       member do
         get 'products'
         get 'orders'
@@ -15,10 +15,19 @@ Rails.application.routes.draw do
     end
 
     # Products
-    resources :products, only: [:index, :show]
+    resources :products, only: [:index, :show, :create, :update, :destroy]
 
     # Events
-    resources :events, only: [:index, :show]
+    resources :events, only: [:index, :show] do
+      collection do
+        post 'from_url', action: :create_from_url
+        get 'my_events', action: :my_events
+        get 'recommended_vendors', action: :recommended_vendors
+      end
+      member do
+        get 'dashboard', action: :dashboard
+      end
+    end
 
     # Cart
     resource :cart, controller: 'cart', only: [:show] do
@@ -47,6 +56,13 @@ Rails.application.routes.draw do
 
     # Event Coordinators
     resources :coordinators, controller: 'event_coordinators', only: [:index, :show]
+
+    # Orders - for vendor dashboard actions
+    resources :orders, only: [] do
+      member do
+        patch 'complete', to: 'orders#complete'
+      end
+    end
   end
 
   # Health check
