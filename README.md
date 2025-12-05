@@ -41,7 +41,29 @@ cd vehndr_api
 bundle install
 ```
 
-3. **Setup database**
+3. **Configure credentials** (Required for JWT authentication)
+```bash
+# Generate a new master key and credentials file
+EDITOR="nano" rails credentials:edit
+
+# This will create config/master.key and config/credentials.yml.enc
+# Add the following to the credentials file that opens:
+
+secret_key_base: <paste-your-generated-secret-here>
+
+# Optional - Add your Stripe keys if you need payment processing:
+stripe:
+  secret_key: sk_test_your_stripe_secret_key
+  webhook_secret: whsec_your_webhook_secret
+
+# To generate a secret_key_base, run: rails secret
+```
+
+**Note:** The `master.key` file is gitignored for security. You have two options:
+- **Option A:** Each developer creates their own `master.key` and credentials (simpler for dev)
+- **Option B:** Share the `master.key` file securely with your team (e.g., via secure chat, password manager) so everyone uses the same credentials
+
+4. **Setup database**
 ```bash
 # Create database
 rails db:create
@@ -51,17 +73,6 @@ rails db:migrate
 
 # Seed with sample data
 rails db:seed
-```
-
-4. **Configure credentials**
-```bash
-# Edit credentials
-EDITOR="code --wait" rails credentials:edit
-
-# Add your Stripe keys:
-stripe:
-  secret_key: sk_test_your_stripe_secret_key
-  webhook_secret: whsec_your_webhook_secret
 ```
 
 5. **Start the server**
