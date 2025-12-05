@@ -13,11 +13,11 @@ module Api
 
     # POST /api/cart/items
     def add_item
-      product = Product.find(params[:product_id])
-      
+      product = Product.find(params[:productId])
+
       cart_item = current_cart.cart_items.find_or_initialize_by(
         product: product,
-        selected_options: params[:selected_options] || {}
+        selected_options: params[:selectedOptions] || {}
       )
 
       if cart_item.persisted?
@@ -73,7 +73,7 @@ module Api
     end
 
     def cart_item_params
-      params.permit(:quantity, selected_options: {})
+      params.permit(:quantity, selectedOptions: {})
     end
 
     def format_cart_response(cart_items)
@@ -86,7 +86,7 @@ module Api
             productId: item.product_id,
             vendorId: item.vendor_id,
             name: item.product.name,
-            image: item.product.image,
+            image: item.product.primary_image_url,
             price: item.product.price,
             quantity: item.quantity,
             options: item.selected_options,

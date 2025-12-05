@@ -49,50 +49,75 @@ artisan_alley = Vendor.create!(
   user: vendor_user,
   name: 'Artisan Alley',
   description: 'Handcrafted jewelry, pottery, and unique art pieces from local artisans',
-  hero_image: '/placeholder.svg?height=400&width=800&text=Artisan+Alley',
   location: 'Austin, TX',
   rating: 4.8,
-  categories: ['art', 'jewelry', 'crafts']
+  categories: ['art', 'jewelry', 'crafts'],
+  stripe_account_id: 'acct_test_artisan_1',
+  stripe_charges_enabled: true,
+  stripe_payouts_enabled: true,
+  stripe_onboarding_completed: true,
+  stripe_details_submitted: true,
+  stripe_connected_at: Time.current
 )
 
 foodie_favorites = Vendor.create!(
   id: 'vendor_foodie_1',
   name: 'Foodie Favorites',
   description: 'Gourmet snacks, artisanal foods, and specialty treats',
-  hero_image: '/placeholder.svg?height=400&width=800&text=Foodie+Favorites',
   location: 'Portland, OR',
   rating: 4.9,
-  categories: ['food', 'snacks', 'beverages']
+  categories: ['food', 'snacks', 'beverages'],
+  stripe_account_id: 'acct_test_foodie_1',
+  stripe_charges_enabled: true,
+  stripe_payouts_enabled: true,
+  stripe_onboarding_completed: true,
+  stripe_details_submitted: true,
+  stripe_connected_at: Time.current
 )
 
 tech_trends = Vendor.create!(
   id: 'vendor_tech_1',
   name: 'Tech Trends',
   description: 'Latest gadgets, accessories, and innovative tech products',
-  hero_image: '/placeholder.svg?height=400&width=800&text=Tech+Trends',
   location: 'San Francisco, CA',
   rating: 4.7,
-  categories: ['electronics', 'gadgets', 'accessories']
+  categories: ['electronics', 'gadgets', 'accessories'],
+  stripe_account_id: 'acct_test_tech_1',
+  stripe_charges_enabled: true,
+  stripe_payouts_enabled: true,
+  stripe_onboarding_completed: true,
+  stripe_details_submitted: true,
+  stripe_connected_at: Time.current
 )
 
 wellness_works = Vendor.create!(
   id: 'vendor_wellness_1',
   name: 'Wellness Works',
   description: 'Health, wellness, and relaxation services for mind and body',
-  hero_image: '/placeholder.svg?height=400&width=800&text=Wellness+Works',
   location: 'Los Angeles, CA',
   rating: 4.9,
-  categories: ['wellness', 'services', 'health']
+  categories: ['wellness', 'services', 'health'],
+  stripe_account_id: 'acct_test_wellness_1',
+  stripe_charges_enabled: true,
+  stripe_payouts_enabled: true,
+  stripe_onboarding_completed: true,
+  stripe_details_submitted: true,
+  stripe_connected_at: Time.current
 )
 
 style_street = Vendor.create!(
   id: 'vendor_style_1',
   name: 'Style Street',
   description: 'Trendy apparel, accessories, and fashion-forward designs',
-  hero_image: '/placeholder.svg?height=400&width=800&text=Style+Street',
   location: 'New York, NY',
   rating: 4.6,
-  categories: ['apparel', 'fashion', 'accessories']
+  categories: ['apparel', 'fashion', 'accessories'],
+  stripe_account_id: 'acct_test_style_1',
+  stripe_charges_enabled: true,
+  stripe_payouts_enabled: true,
+  stripe_onboarding_completed: true,
+  stripe_details_submitted: true,
+  stripe_connected_at: Time.current
 )
 
 # Create events and memberships
@@ -104,7 +129,6 @@ spring_market = Event.create!(
   location: 'Austin, TX',
   start_date: Time.zone.parse('2026-03-21 10:00'),
   end_date: Time.zone.parse('2026-03-21 18:00'),
-  image: '/placeholder.svg?height=400&width=800&text=Spring+Makers+Market',
   category: 'Market',
   attendees: 2500,
   status: 'upcoming'
@@ -116,7 +140,6 @@ tech_expo = Event.create!(
   location: 'San Francisco, CA',
   start_date: Time.zone.parse('2026-05-04 09:00'),
   end_date: Time.zone.parse('2026-05-06 17:00'),
-  image: '/placeholder.svg?height=400&width=800&text=Tech+Expo+2026',
   category: 'Expo',
   attendees: 18000,
   status: 'upcoming'
@@ -128,7 +151,6 @@ wellness_fair = Event.create!(
   location: 'Los Angeles, CA',
   start_date: Time.zone.parse('2026-02-12 10:00'),
   end_date: Time.zone.parse('2026-02-12 16:00'),
-  image: '/placeholder.svg?height=400&width=800&text=Wellness+Fair',
   category: 'Wellness',
   attendees: 3200,
   status: 'past'
@@ -140,7 +162,6 @@ food_fest = Event.create!(
   location: 'Portland, OR',
   start_date: Time.zone.parse('2026-06-15 11:00'),
   end_date: Time.zone.parse('2026-06-15 20:00'),
-  image: '/placeholder.svg?height=400&width=800&text=Food+Fest',
   category: 'Food',
   attendees: 9200,
   status: 'upcoming'
@@ -152,7 +173,6 @@ holiday_bazaar = Event.create!(
   location: 'New York, NY',
   start_date: Time.zone.parse('2025-12-10 10:00'),
   end_date: Time.zone.parse('2025-12-12 19:00'),
-  image: '/placeholder.svg?height=400&width=800&text=Holiday+Bazaar',
   category: 'Market',
   attendees: 12000,
   status: 'active'
@@ -174,7 +194,6 @@ handmade_necklace = Product.create!(
   name: 'Handmade Silver Necklace',
   description: 'Beautiful handcrafted silver necklace with turquoise stone pendant',
   price: 8500, # $85.00
-  image: '/placeholder.svg?height=300&width=300&text=Silver+Necklace',
   is_service: false
 )
 
@@ -194,7 +213,6 @@ ceramic_bowl = Product.create!(
   name: 'Hand-thrown Ceramic Bowl',
   description: 'Unique ceramic bowl perfect for serving or decoration',
   price: 4500, # $45.00
-  image: '/placeholder.svg?height=300&width=300&text=Ceramic+Bowl',
   is_service: false
 )
 
@@ -224,7 +242,6 @@ gourmet_chocolate = Product.create!(
   name: 'Artisan Chocolate Box',
   description: 'Assorted handmade chocolates with unique flavor combinations',
   price: 3500, # $35.00
-  image: '/placeholder.svg?height=300&width=300&text=Chocolate+Box',
   is_service: false
 )
 
@@ -251,7 +268,6 @@ hot_sauce_set = Product.create!(
   name: 'Craft Hot Sauce Trio',
   description: 'Three unique hot sauces ranging from mild to extra spicy',
   price: 2800, # $28.00
-  image: '/placeholder.svg?height=300&width=300&text=Hot+Sauce+Set',
   is_service: false
 )
 
@@ -274,7 +290,6 @@ wireless_earbuds = Product.create!(
   name: 'Premium Wireless Earbuds',
   description: 'High-quality wireless earbuds with noise cancellation',
   price: 12900, # $129.00
-  image: '/placeholder.svg?height=300&width=300&text=Wireless+Earbuds',
   is_service: false
 )
 
@@ -294,7 +309,6 @@ phone_case = Product.create!(
   name: 'Custom Phone Case',
   description: 'Durable phone case with customizable design options',
   price: 3500, # $35.00
-  image: '/placeholder.svg?height=300&width=300&text=Phone+Case',
   is_service: false
 )
 
@@ -324,7 +338,6 @@ chair_massage = Product.create!(
   name: 'Chair Massage Session',
   description: 'Relaxing chair massage focusing on neck, shoulders, and back',
   price: 5000, # $50.00
-  image: '/placeholder.svg?height=300&width=300&text=Chair+Massage',
   is_service: true,
   duration: 30,
   available_time_slots: ['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', 
@@ -354,7 +367,6 @@ yoga_session = Product.create!(
   name: 'Private Yoga Session',
   description: 'One-on-one yoga instruction tailored to your level',
   price: 7500, # $75.00
-  image: '/placeholder.svg?height=300&width=300&text=Yoga+Session',
   is_service: true,
   duration: 60,
   available_time_slots: ['7:00 AM', '8:00 AM', '9:00 AM', '10:00 AM', 
@@ -384,7 +396,6 @@ meditation = Product.create!(
   name: 'Guided Meditation',
   description: 'Peaceful guided meditation session for stress relief',
   price: 3500, # $35.00
-  image: '/placeholder.svg?height=300&width=300&text=Meditation',
   is_service: true,
   duration: 45,
   available_time_slots: ['8:00 AM', '10:00 AM', '12:00 PM', '2:00 PM', '4:00 PM', '6:00 PM']
@@ -409,7 +420,6 @@ graphic_tee = Product.create!(
   name: 'Vintage Graphic T-Shirt',
   description: 'Comfortable cotton tee with unique vintage-inspired designs',
   price: 3200, # $32.00
-  image: '/placeholder.svg?height=300&width=300&text=Graphic+Tee',
   is_service: false
 )
 
@@ -436,7 +446,6 @@ canvas_tote = Product.create!(
   name: 'Canvas Tote Bag',
   description: 'Durable canvas tote perfect for shopping or daily use',
   price: 2800, # $28.00
-  image: '/placeholder.svg?height=300&width=300&text=Canvas+Tote',
   is_service: false
 )
 
@@ -463,7 +472,6 @@ sunglasses = Product.create!(
   name: 'Polarized Sunglasses',
   description: 'Stylish polarized sunglasses with UV protection',
   price: 4500, # $45.00
-  image: '/placeholder.svg?height=300&width=300&text=Sunglasses',
   is_service: false
 )
 

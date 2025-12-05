@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_12_01_194811) do
+ActiveRecord::Schema[8.0].define(version: 2025_12_01_234917) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -129,7 +129,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_01_194811) do
     t.string "stripe_payment_intent_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "stripe_charge_id"
+    t.integer "application_fee_cents", default: 0
+    t.decimal "platform_fee_percent", precision: 5, scale: 2
+    t.string "payment_status", default: "pending"
+    t.index ["payment_status"], name: "index_orders_on_payment_status"
     t.index ["status"], name: "index_orders_on_status"
+    t.index ["stripe_charge_id"], name: "index_orders_on_stripe_charge_id"
     t.index ["stripe_checkout_session_id"], name: "index_orders_on_stripe_checkout_session_id"
     t.index ["user_id"], name: "index_orders_on_user_id"
     t.index ["vendor_id"], name: "index_orders_on_vendor_id"
@@ -184,8 +190,16 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_01_194811) do
     t.datetime "updated_at", null: false
     t.uuid "user_id"
     t.vector "embedding", limit: 1536
+    t.string "stripe_account_id"
+    t.boolean "stripe_onboarding_completed", default: false
+    t.boolean "stripe_charges_enabled", default: false
+    t.boolean "stripe_payouts_enabled", default: false
+    t.boolean "stripe_details_submitted", default: false
+    t.datetime "stripe_connected_at"
     t.index ["categories"], name: "index_vendors_on_categories", using: :gin
     t.index ["name"], name: "index_vendors_on_name"
+    t.index ["stripe_account_id"], name: "index_vendors_on_stripe_account_id"
+    t.index ["stripe_charges_enabled"], name: "index_vendors_on_stripe_charges_enabled"
     t.index ["user_id"], name: "index_vendors_on_user_id"
   end
 

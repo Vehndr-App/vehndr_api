@@ -8,7 +8,12 @@ module Api
     def index
       vendors = Vendor.all
       vendors = vendors.by_category(params[:category]) if params[:category].present?
-      
+
+      if params[:search].present?
+        search_term = "%#{params[:search]}%"
+        vendors = vendors.where("name ILIKE ? OR description ILIKE ?", search_term, search_term)
+      end
+
       render json: vendors, each_serializer: VendorSerializer
     end
 

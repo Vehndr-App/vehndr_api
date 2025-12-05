@@ -31,6 +31,23 @@ class Vendor < ApplicationRecord
     Rails.application.routes.url_helpers.url_for(hero_image)
   end
 
+  # Stripe Connect helpers
+  def needs_stripe_onboarding?
+    stripe_account_id.blank? || !stripe_onboarding_completed
+  end
+
+  def stripe_account_active?
+    stripe_account_id.present? && stripe_onboarding_completed
+  end
+
+  def can_process_payments?
+    stripe_account_id.present? && stripe_charges_enabled
+  end
+
+  def stripe_ready_for_checkout?
+    can_process_payments?
+  end
+
   private
 
   def generate_vendor_id

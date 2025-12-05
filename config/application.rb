@@ -31,7 +31,10 @@ module VehndrApi
 
     # Enable sessions for cart management
     config.middleware.use ActionDispatch::Cookies
-    config.middleware.use ActionDispatch::Session::CookieStore, key: '_vehndr_session'
+    config.middleware.use ActionDispatch::Session::CookieStore,
+      key: '_vehndr_session',
+      same_site: :none,
+      secure: false  # Set to true in production with HTTPS
 
     # Configure ActiveModelSerializers
     ActiveModelSerializers.config.adapter = :json

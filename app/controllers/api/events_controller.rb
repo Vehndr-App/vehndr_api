@@ -128,14 +128,21 @@ module Api
         return render json: { error: 'Only coordinators can access recommendations' }, status: :forbidden
       end
 
-      # TODO: Add actual recommendation logic
-      # For now, just return the last 2 vendors in the database
-      vendors = Vendor.order(created_at: :desc).limit(2).map do |vendor|
+      event = Event.find(params[:id])
+
+      # Verify this event belongs to the current coordinator
+      coordinator = current_user.coordinator_profile
+      unless event.coordinator_id == coordinator&.id
+        return render json: { error: 'Not authorized to view this event' }, status: :forbidden
+      end
+
+      # Use nearest neighbors to find vendors with similar embeddings
+      vendors = Vendor.nearest_neighbors(:embedding, event.embedding, distance: 'euclidean').first(3).map do |vendor|
         {
           id: vendor.id,
           name: vendor.name,
           description: vendor.description,
-          heroImage: vendor.hero_image,
+          heroImage: vendor.hero_image_url,
           location: vendor.location
         }
       end

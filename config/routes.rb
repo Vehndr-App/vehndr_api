@@ -11,6 +11,13 @@ Rails.application.routes.draw do
       member do
         get 'products'
         get 'orders'
+
+        # Stripe Connect
+        scope 'stripe' do
+          post 'account_link', to: 'stripe_connect#create_account_link'
+          get 'account', to: 'stripe_connect#show_account'
+          post 'refresh', to: 'stripe_connect#refresh_account'
+        end
       end
     end
 
@@ -22,10 +29,10 @@ Rails.application.routes.draw do
       collection do
         post 'from_url', action: :create_from_url
         get 'my_events', action: :my_events
-        get 'recommended_vendors', action: :recommended_vendors
       end
       member do
         get 'dashboard', action: :dashboard
+        get 'recommended_vendors', action: :recommended_vendors
       end
     end
 
