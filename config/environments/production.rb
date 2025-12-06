@@ -21,6 +21,9 @@ Rails.application.configure do
   # Store uploaded files on Amazon S3 (see config/storage.yml for options).
   config.active_storage.service = :amazon
 
+  # Skip Active Storage analysis to avoid Solid Queue dependency issues
+  config.active_storage.analyze = false
+
   # Assume all access to the app is happening through a SSL-terminating reverse proxy.
   config.assume_ssl = true
 
