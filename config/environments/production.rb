@@ -79,6 +79,13 @@ Rails.application.configure do
   # Only use :id for inspections in production.
   config.active_record.attributes_for_inspect = [ :id ]
 
+  # Configure ActionCable allowed origins for WebSocket connections
+  config.action_cable.allowed_request_origins = [
+    'https://www.vehndr.com',
+    'https://vehndr.com'
+  ]
+  config.action_cable.url = ENV.fetch('ACTION_CABLE_URL', 'wss://vehndr-api-9f3b664fe80f.herokuapp.com/cable')
+
   # Enable DNS rebinding protection and other `Host` header attacks.
   # config.hosts = [
   #   "example.com",     # Allow requests from example.com
