@@ -14,6 +14,18 @@ module Api
         vendors = vendors.where("name ILIKE ? OR description ILIKE ?", search_term, search_term)
       end
 
+      # Filter by price range (based on vendor's products)
+      if params[:min_price].present? || params[:max_price].present?
+        min_price = params[:min_price].to_i * 100 if params[:min_price].present? # Convert to cents
+        max_price = params[:max_price].to_i * 100 if params[:max_price].present? # Convert to cents
+
+        vendor_ids = Product.select(:vendor_id).distinct
+        vendor_ids = vendor_ids.where('price >= ?', min_price) if min_price
+        vendor_ids = vendor_ids.where('price <= ?', max_price) if max_price
+
+        vendors = vendors.where(id: vendor_ids)
+      end
+
       render json: vendors, each_serializer: VendorSerializer
     end
 
