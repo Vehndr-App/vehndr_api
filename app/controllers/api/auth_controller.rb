@@ -7,6 +7,15 @@ module Api
 
     # POST /api/auth/login
     def login
+      # Verify reCAPTCHA token
+      unless verify_recaptcha_token
+        render json: {
+          error: 'reCAPTCHA verification failed',
+          errors: ['Please verify that you are human']
+        }, status: :unprocessable_entity
+        return
+      end
+
       user = User.find_by(email: params[:email]&.downcase)
 
       if user&.authenticate(params[:password])
@@ -17,7 +26,7 @@ module Api
         end
 
         token = JsonWebToken.encode(user_id: user.id)
-        
+
         render json: {
           token: token,
           user: UserSerializer.new(user)
