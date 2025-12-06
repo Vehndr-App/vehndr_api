@@ -35,7 +35,8 @@ class Product < ApplicationRecord
   def primary_image_url
     if images.attached? && images.first.present?
       begin
-        Rails.application.routes.url_helpers.url_for(images.first)
+        # Use direct S3 URL for production, url_for for development
+        Rails.env.production? ? images.first.url : Rails.application.routes.url_helpers.url_for(images.first)
       rescue ArgumentError => e
         Rails.logger.error "Failed to generate image URL: #{e.message}"
         nil
@@ -51,7 +52,8 @@ class Product < ApplicationRecord
 
     images.map do |img|
       begin
-        Rails.application.routes.url_helpers.url_for(img)
+        # Use direct S3 URL for production, url_for for development
+        Rails.env.production? ? img.url : Rails.application.routes.url_helpers.url_for(img)
       rescue ArgumentError => e
         Rails.logger.error "Failed to generate image URL: #{e.message}"
         nil

@@ -27,8 +27,8 @@ class Vendor < ApplicationRecord
   # Instance methods
   def hero_image_url
     return nil unless hero_image.attached?
-    # Use url_for with host to generate full URL for API responses
-    Rails.application.routes.url_helpers.url_for(hero_image)
+    # Use direct S3 URL for production, url_for for development
+    Rails.env.production? ? hero_image.url : Rails.application.routes.url_helpers.url_for(hero_image)
   end
 
   # Stripe Connect helpers
