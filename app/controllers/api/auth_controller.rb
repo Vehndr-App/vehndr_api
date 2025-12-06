@@ -1,21 +1,9 @@
 module Api
   class AuthController < BaseController
-    include Recaptcha::Adapters::ControllerMethods
-    include Recaptcha::Adapters::ViewMethods
-
     # No authentication needed for auth endpoints
 
     # POST /api/auth/login
     def login
-      # Verify reCAPTCHA token
-      unless verify_recaptcha_token
-        render json: {
-          error: 'reCAPTCHA verification failed',
-          errors: ['Please verify that you are human']
-        }, status: :unprocessable_entity
-        return
-      end
-
       user = User.find_by(email: params[:email]&.downcase)
 
       if user&.authenticate(params[:password])
@@ -38,15 +26,6 @@ module Api
 
     # POST /api/auth/register
     def register
-      # Verify reCAPTCHA token
-      unless verify_recaptcha_token
-        render json: {
-          error: 'reCAPTCHA verification failed',
-          errors: ['Please verify that you are human']
-        }, status: :unprocessable_entity
-        return
-      end
-
       user = User.new(user_params)
       user.role = 'customer' unless params[:role].in?(%w[vendor coordinator])
 
@@ -98,7 +77,21 @@ module Api
       recaptcha_token = params[:recaptcha_token]
       return false if recaptcha_token.blank?
 
-      verify_recaptcha(response: recaptcha_token, secret_key: Recaptcha.configuration.secret_key)
+      secret_key = Recaptcha.configuration.secret_key
+      return false if secret_key.blank?
+
+      uri = URI.parse("https://www.google.com/recaptcha/api/siteverify")
+      response = Net::HTTP.post_form(uri, {
+        secret: secret_key,
+        response: recaptcha_token,
+        remoteip: request.remote_ip
+      })
+
+      result = JSON.parse(response.body)
+      result["success"] == true
+    rescue => e
+      Rails.logger.error "reCAPTCHA verification error: #{e.message}"
+      false
     end
 
     def current_user
