@@ -80,7 +80,16 @@ module Api
       vendor.user_id = current_user.id
 
       if vendor.save
-        # Update user's vendor_id reference if needed (for convenience)
+        # Automatically create Stripe Connect account for the vendor
+        begin
+          StripeConnectService.create_account(vendor)
+          vendor.reload
+          Rails.logger.info "Created Stripe Connect account for vendor: #{vendor.name} (#{vendor.stripe_account_id})"
+        rescue Stripe::StripeError => e
+          Rails.logger.error "Failed to create Stripe Connect account for vendor #{vendor.id}: #{e.message}"
+          # Continue - vendor is created but Stripe setup can be done later
+        end
+
         render json: vendor, serializer: VendorDetailSerializer, status: :created
       else
         render_error(vendor.errors.full_messages, :unprocessable_entity)
