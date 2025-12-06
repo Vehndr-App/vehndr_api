@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_12_01_234917) do
+ActiveRecord::Schema[8.0].define(version: 2025_12_06_012237) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -121,7 +121,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_01_234917) do
   end
 
   create_table "orders", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "user_id", null: false
+    t.uuid "user_id"
     t.string "vendor_id", null: false
     t.integer "total_cents", null: false
     t.string "status", default: "pending"
@@ -133,12 +133,16 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_01_234917) do
     t.integer "application_fee_cents", default: 0
     t.decimal "platform_fee_percent", precision: 5, scale: 2
     t.string "payment_status", default: "pending"
+    t.string "guest_email"
+    t.string "guest_name"
+    t.string "guest_phone"
     t.index ["payment_status"], name: "index_orders_on_payment_status"
     t.index ["status"], name: "index_orders_on_status"
     t.index ["stripe_charge_id"], name: "index_orders_on_stripe_charge_id"
     t.index ["stripe_checkout_session_id"], name: "index_orders_on_stripe_checkout_session_id"
     t.index ["user_id"], name: "index_orders_on_user_id"
     t.index ["vendor_id"], name: "index_orders_on_vendor_id"
+    t.check_constraint "user_id IS NOT NULL OR guest_email IS NOT NULL", name: "orders_must_have_user_or_guest"
   end
 
   create_table "product_options", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|

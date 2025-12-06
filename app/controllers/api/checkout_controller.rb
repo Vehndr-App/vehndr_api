@@ -15,11 +15,15 @@ module Api
       invalid_vendors = vendor_groups.keys.reject(&:can_process_payments?)
       if invalid_vendors.any?
         vendor_names = invalid_vendors.map(&:name).join(', ')
-        return render_error("The following vendors cannot accept payments yet: #{vendor_names}. They need to complete Stripe onboarding.", :unprocessable_entity)
+        error_msg = "The following vendors cannot accept payments yet: #{vendor_names}. They need to complete Stripe onboarding."
+        Rails.logger.error "Checkout Error: #{error_msg}"
+        return render_error(error_msg, :unprocessable_entity)
       end
 
       # Check if this is a per-vendor request (single vendor checkout)
-      vendor_id_param = params[:vendor_id]
+      vendor_id_param = params[:vendorId] || params[:vendor_id]
+
+      Rails.logger.info "Checkout Debug: vendor_id_param = #{vendor_id_param.inspect}, params keys = #{params.keys.inspect}"
 
       if vendor_id_param
         # Single vendor checkout
@@ -31,6 +35,8 @@ module Api
         end
 
         session = create_vendor_checkout_session(vendor, items, current_cart, current_user)
+
+        Rails.logger.info "Stripe Session Created: ID=#{session.id}, URL=#{session.url.inspect}"
 
         render json: {
           sessionId: session.id,
@@ -157,8 +163,8 @@ module Api
         }
       end
 
-      # Create session with Direct Charges to vendor's Stripe account
-      Stripe::Checkout::Session.create({
+      # Build session params
+      session_params = {
         payment_method_types: ['card'],
         line_items: line_items,
         mode: 'payment',
@@ -177,7 +183,17 @@ module Api
           application_fee_cents: fee_cents,
           platform_fee_percent: fee_percent
         }
-      })
+      }
+
+      # For guest checkout, collect email during Stripe checkout
+      unless user
+        session_params[:customer_email] = nil # Let Stripe collect it
+        session_params[:billing_address_collection] = 'required'
+        session_params[:phone_number_collection] = { enabled: true }
+      end
+
+      # Create session with Direct Charges to vendor's Stripe account
+      Stripe::Checkout::Session.create(session_params)
     end
 
     def calculate_application_fee(amount_cents)
@@ -189,19 +205,26 @@ module Api
       user = User.find_by(id: session['metadata']['user_id'])
       vendor_id = session['metadata']['vendor_id']
 
-      return unless cart && user
+      return unless cart
+
+      # Extract guest info from Stripe if no user
+      guest_data = nil
+      unless user
+        guest_data = extract_guest_data_from_session(session)
+        return unless guest_data[:email].present?
+      end
 
       if vendor_id
         # Single vendor order from per-vendor checkout
         vendor = Vendor.find(vendor_id)
         items = cart.cart_items.where(vendor_id: vendor_id)
 
-        create_order_from_session(user, vendor, items, session)
+        create_order_from_session(user, vendor, items, session, guest_data)
       else
         # Legacy multi-vendor checkout (backward compatibility)
         cart.items_grouped_by_vendor.each do |vid, items|
           vendor = Vendor.find(vid)
-          create_order_from_session(user, vendor, items, session)
+          create_order_from_session(user, vendor, items, session, guest_data)
         end
       end
 
@@ -213,12 +236,12 @@ module Api
       end
     end
 
-    def create_order_from_session(user, vendor, items, session)
+    def create_order_from_session(user, vendor, items, session, guest_data = nil)
       total_cents = items.sum(&:subtotal)
       fee_cents = session['metadata']['application_fee_cents'].to_i
       fee_percent = session['metadata']['platform_fee_percent'].to_f
 
-      order = user.orders.create!(
+      order_params = {
         vendor: vendor,
         total_cents: total_cents,
         status: 'confirmed',
@@ -228,8 +251,17 @@ module Api
         application_fee_cents: fee_cents,
         platform_fee_percent: fee_percent,
         payment_status: 'succeeded'
-      )
+      }
 
+      if user
+        order_params[:user] = user
+      elsif guest_data
+        order_params[:guest_email] = guest_data[:email]
+        order_params[:guest_name] = guest_data[:name]
+        order_params[:guest_phone] = guest_data[:phone]
+      end
+
+      order = Order.create!(order_params)
       order.create_from_cart_items!(items)
 
       # Trigger webhook to frontend or external system for this vendor order
@@ -260,15 +292,34 @@ module Api
             total_cents: order.total_cents,
             status: order.status,
             created_at: order.created_at,
-            user: {
-              name: order.user.name,
-              email: order.user.email
+            customer: {
+              name: order.customer_name,
+              email: order.customer_email
             }
           }
         }
       )
-      
+
       Rails.logger.info "ActionCable broadcast: New Order ##{order.id} for Vendor #{order.vendor.name}"
+    end
+
+    def extract_guest_data_from_session(stripe_session)
+      # Retrieve full session details to get customer info
+      session = Stripe::Checkout::Session.retrieve(
+        stripe_session['id'],
+        expand: ['customer_details']
+      )
+
+      customer_details = session.customer_details || {}
+
+      {
+        email: session.customer_email || customer_details['email'],
+        name: customer_details['name'],
+        phone: customer_details['phone']
+      }
+    rescue => e
+      Rails.logger.error "Failed to extract guest data: #{e.message}"
+      { email: nil, name: nil, phone: nil }
     end
 
     def format_options(options)

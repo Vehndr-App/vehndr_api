@@ -4,7 +4,7 @@ class Order < ApplicationRecord
   PAYMENT_STATUSES = %w[pending succeeded failed refunded].freeze
 
   # Relationships
-  belongs_to :user
+  belongs_to :user, optional: true
   belongs_to :vendor
   has_many :order_items, dependent: :destroy
   has_many :products, through: :order_items
@@ -13,6 +13,8 @@ class Order < ApplicationRecord
   validates :total_cents, presence: true, numericality: { greater_than: 0 }
   validates :status, inclusion: { in: STATUSES }
   validates :payment_status, inclusion: { in: PAYMENT_STATUSES }, allow_nil: true
+  validates :guest_email, presence: true, if: -> { user_id.nil? }
+  validate :must_have_user_or_guest
 
   # Scopes
   scope :pending, -> { where(status: 'pending') }
@@ -86,6 +88,27 @@ class Order < ApplicationRecord
 
   def mark_payment_failed!
     update!(payment_status: 'failed', status: 'cancelled')
+  end
+
+  # Guest order helpers
+  def guest_order?
+    user_id.nil?
+  end
+
+  def customer_email
+    user&.email || guest_email
+  end
+
+  def customer_name
+    user&.name || guest_name
+  end
+
+  private
+
+  def must_have_user_or_guest
+    if user_id.nil? && guest_email.blank?
+      errors.add(:base, "Order must have either a user or guest email")
+    end
   end
 end
 

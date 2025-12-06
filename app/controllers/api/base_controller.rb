@@ -19,11 +19,26 @@ module Api
     end
 
     def find_or_create_cart
+      # Prioritize user cart if authenticated
       if defined?(@current_user) && @current_user
-        @current_user.current_cart
+        return @current_user.current_cart
+      end
+
+      # Use cart token from header for guest carts
+      cart_token = request.headers['X-Cart-Token']
+
+      Rails.logger.info "Cart Token Debug: X-Cart-Token header = #{cart_token.inspect}"
+
+      if cart_token.present?
+        cart = Cart.find_or_create_by(session_id: cart_token)
+        Rails.logger.info "Cart Token Debug: Using cart #{cart.id} with session_id #{cart_token}, items count: #{cart.cart_items.count}"
+        cart
       else
+        # Fallback to session (though this won't work well with API-only mode)
         session_id = session[:cart_session_id] ||= SecureRandom.uuid
-        Cart.find_or_create_by(session_id: session_id)
+        cart = Cart.find_or_create_by(session_id: session_id)
+        Rails.logger.warn "Cart Token Debug: No X-Cart-Token header! Falling back to Rails session #{session_id}, items count: #{cart.cart_items.count}"
+        cart
       end
     end
 
