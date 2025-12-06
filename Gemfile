@@ -41,6 +41,9 @@ gem "rack-cors"
 # Authentication
 gem "jwt"
 
+# reCAPTCHA verification
+gem "recaptcha"
+
 # Stripe for payment processing
 gem "stripe"
 

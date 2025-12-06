@@ -1,5 +1,8 @@
 module Api
   class AuthController < BaseController
+    include Recaptcha::Adapters::ControllerMethods
+    include Recaptcha::Adapters::ViewMethods
+
     # No authentication needed for auth endpoints
 
     # POST /api/auth/login
@@ -26,6 +29,15 @@ module Api
 
     # POST /api/auth/register
     def register
+      # Verify reCAPTCHA token
+      unless verify_recaptcha_token
+        render json: {
+          error: 'reCAPTCHA verification failed',
+          errors: ['Please verify that you are human']
+        }, status: :unprocessable_entity
+        return
+      end
+
       user = User.new(user_params)
       user.role = 'customer' unless params[:role].in?(%w[vendor coordinator])
 
@@ -37,7 +49,7 @@ module Api
         end
 
         token = JsonWebToken.encode(user_id: user.id)
-        
+
         render json: {
           token: token,
           user: UserSerializer.new(user)
@@ -73,17 +85,24 @@ module Api
       params.permit(:email, :password, :password_confirmation, :name, :role)
     end
 
+    def verify_recaptcha_token
+      recaptcha_token = params[:recaptcha_token]
+      return false if recaptcha_token.blank?
+
+      verify_recaptcha(response: recaptcha_token, secret_key: Recaptcha.configuration.secret_key)
+    end
+
     def current_user
       return @current_user if defined?(@current_user)
-      
+
       header = request.headers['Authorization']
       header = header.split(' ').last if header
-      
+
       if header
         decoded = JsonWebToken.decode(header)
         @current_user = User.find(decoded[:user_id]) if decoded
       end
-      
+
       @current_user
     rescue
       @current_user = nil
