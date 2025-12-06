@@ -9,7 +9,7 @@ Rails.application.config.middleware.insert_before 0, Rack::Cors do
   allow do
     # Configure allowed origins via env; fall back to common dev ports
     allowed = if Rails.env.production?
-      ENV.fetch('CORS_ALLOWED_ORIGINS', 'https://your-frontend-domain.com')
+      ENV.fetch('CORS_ALLOWED_ORIGINS', 'https://www.vehndr.com,https://vehndr.com')
     else
       ENV.fetch('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173,http://localhost:3001')
     end

@@ -322,7 +322,7 @@ module Api
     end
 
     def frontend_url
-      ENV.fetch('FRONTEND_URL', 'http://localhost:3000')
+      ENV.fetch('FRONTEND_URL', 'http://localhost:3001')
     end
   end
 end
