@@ -68,6 +68,7 @@ Rails.application.routes.draw do
     resources :orders, only: [] do
       member do
         patch 'complete', to: 'orders#complete'
+        post 'refund', to: 'orders#refund'
       end
     end
   end

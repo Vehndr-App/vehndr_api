@@ -48,11 +48,15 @@ module Api
           id: order.id,
           total_cents: order.total_cents,
           status: order.status,
+          payment_status: order.payment_status,
+          refund_status: order.refund_status,
+          refund_amount_cents: order.refund_amount_cents,
+          refunded_at: order.refunded_at,
           created_at: order.created_at,
           updated_at: order.updated_at,
           customer: {
-            name: order.user.name,
-            email: order.user.email
+            name: order.user&.name || order.guest_name,
+            email: order.user&.email || order.guest_email
           },
           line_items: order.order_items.map do |item|
             {

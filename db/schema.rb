@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_12_07_004146) do
+ActiveRecord::Schema[8.0].define(version: 2025_12_07_005039) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -136,10 +136,16 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_07_004146) do
     t.string "guest_email"
     t.string "guest_name"
     t.string "guest_phone"
+    t.string "refund_status"
+    t.integer "refund_amount_cents", default: 0
+    t.datetime "refunded_at"
+    t.string "stripe_refund_id"
     t.index ["payment_status"], name: "index_orders_on_payment_status"
+    t.index ["refund_status"], name: "index_orders_on_refund_status"
     t.index ["status"], name: "index_orders_on_status"
     t.index ["stripe_charge_id"], name: "index_orders_on_stripe_charge_id"
     t.index ["stripe_checkout_session_id"], name: "index_orders_on_stripe_checkout_session_id"
+    t.index ["stripe_refund_id"], name: "index_orders_on_stripe_refund_id"
     t.index ["user_id"], name: "index_orders_on_user_id"
     t.index ["vendor_id"], name: "index_orders_on_vendor_id"
     t.check_constraint "user_id IS NOT NULL OR guest_email IS NOT NULL", name: "orders_must_have_user_or_guest"

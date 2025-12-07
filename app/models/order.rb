@@ -2,6 +2,7 @@ class Order < ApplicationRecord
   # Constants
   STATUSES = %w[pending confirmed completed cancelled].freeze
   PAYMENT_STATUSES = %w[pending succeeded failed refunded].freeze
+  REFUND_STATUSES = %w[none pending_refund partial_refund full_refund].freeze
 
   # Relationships
   belongs_to :user, optional: true
@@ -13,6 +14,7 @@ class Order < ApplicationRecord
   validates :total_cents, presence: true, numericality: { greater_than: 0 }
   validates :status, inclusion: { in: STATUSES }
   validates :payment_status, inclusion: { in: PAYMENT_STATUSES }, allow_nil: true
+  validates :refund_status, inclusion: { in: REFUND_STATUSES }, allow_nil: true
   validates :guest_email, presence: true, if: -> { user_id.nil? }
   validate :must_have_user_or_guest
 
@@ -101,6 +103,45 @@ class Order < ApplicationRecord
 
   def customer_name
     user&.name || guest_name
+  end
+
+  # Refund helpers
+  def refundable?
+    payment_status == 'succeeded' &&
+    stripe_charge_id.present? &&
+    (refund_status.nil? || refund_status == 'none')
+  end
+
+  def refunded?
+    refund_status == 'full_refund' || refund_status == 'partial_refund'
+  end
+
+  def fully_refunded?
+    refund_status == 'full_refund'
+  end
+
+  def partially_refunded?
+    refund_status == 'partial_refund'
+  end
+
+  def refund_amount_in_dollars
+    return 0 if refund_amount_cents.nil? || refund_amount_cents.zero?
+    refund_amount_cents / 100.0
+  end
+
+  def mark_refund_pending!
+    update!(refund_status: 'pending_refund')
+  end
+
+  def mark_refunded!(refund_id, amount_cents)
+    refund_type = amount_cents >= total_cents ? 'full_refund' : 'partial_refund'
+    update!(
+      refund_status: refund_type,
+      refund_amount_cents: amount_cents,
+      stripe_refund_id: refund_id,
+      refunded_at: Time.current,
+      payment_status: refund_type == 'full_refund' ? 'refunded' : payment_status
+    )
   end
 
   private
