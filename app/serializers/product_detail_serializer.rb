@@ -10,7 +10,7 @@ class ProductDetailSerializer < ApplicationSerializer
   end
 
   def available_time_slots
-    object.is_service? ? object.available_time_slots : nil
+    object.is_service? ? object.currently_available_time_slots : nil
   end
 
   def duration

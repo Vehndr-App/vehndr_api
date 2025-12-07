@@ -46,19 +46,21 @@ class CartItem < ApplicationRecord
     return unless selected_options['timeSlot'].present?
 
     time_slot = selected_options['timeSlot']
-    unless product.available_time_slots.include?(time_slot)
+
+    # Check if time slot exists and is available (not booked)
+    unless product.time_slot_available?(time_slot)
       errors.add(:selected_options, "Time slot #{time_slot} is not available")
+      return
     end
 
-    # Check if time slot is already booked (simplified version)
-    # In production, you'd want more sophisticated booking logic
+    # Check if time slot is in another cart (temporary reservation)
     existing_bookings = CartItem.joins(:product, :cart)
                                 .where(products: { id: product.id })
                                 .where.not(cart_id: cart_id)
                                 .where("selected_options->>'timeSlot' = ?", time_slot)
-    
+
     if existing_bookings.exists?
-      errors.add(:selected_options, "Time slot #{time_slot} is already booked")
+      errors.add(:selected_options, "Time slot #{time_slot} is already in another cart")
     end
   end
 end

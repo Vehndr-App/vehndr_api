@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_12_06_012237) do
+ActiveRecord::Schema[8.0].define(version: 2025_12_07_004146) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -168,6 +168,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_06_012237) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.vector "embedding", limit: 1536
+    t.string "booked_time_slots", default: [], array: true
     t.index ["is_service"], name: "index_products_on_is_service"
     t.index ["name"], name: "index_products_on_name"
     t.index ["vendor_id"], name: "index_products_on_vendor_id"

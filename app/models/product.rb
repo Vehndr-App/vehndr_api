@@ -31,6 +31,26 @@ class Product < ApplicationRecord
     price / 100.0 if price
   end
 
+  # Get currently available (unbooked) time slots
+  def currently_available_time_slots
+    return [] unless is_service? && available_time_slots.present?
+    available_time_slots - (booked_time_slots || [])
+  end
+
+  # Book a time slot
+  def book_time_slot(time_slot)
+    return false unless is_service? && available_time_slots.include?(time_slot)
+    return false if booked_time_slots.include?(time_slot)
+
+    update(booked_time_slots: (booked_time_slots || []) + [time_slot])
+  end
+
+  # Check if a time slot is available
+  def time_slot_available?(time_slot)
+    return false unless is_service? && available_time_slots.include?(time_slot)
+    !booked_time_slots.include?(time_slot)
+  end
+
   # Get the primary image (first image)
   def primary_image_url
     if images.attached? && images.first.present?
