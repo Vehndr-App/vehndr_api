@@ -11,19 +11,24 @@ module Api
       # Group items by vendor for per-vendor checkout
       vendor_groups = cart_items.group_by(&:vendor)
 
-      # Validate all vendors can process payments
-      invalid_vendors = vendor_groups.keys.reject(&:can_process_payments?)
-      if invalid_vendors.any?
-        vendor_names = invalid_vendors.map(&:name).join(', ')
-        error_msg = "The following vendors cannot accept payments yet: #{vendor_names}. They need to complete Stripe onboarding."
-        Rails.logger.error "Checkout Error: #{error_msg}"
-        return render_error(error_msg, :unprocessable_entity)
+      # Check if this is a demo checkout request (development only)
+      demo_mode = Rails.env.development? && params[:demo_mode] == true
+
+      unless demo_mode
+        # Validate all vendors can process payments
+        invalid_vendors = vendor_groups.keys.reject(&:can_process_payments?)
+        if invalid_vendors.any?
+          vendor_names = invalid_vendors.map(&:name).join(', ')
+          error_msg = "The following vendors cannot accept payments yet: #{vendor_names}. They need to complete Stripe onboarding."
+          Rails.logger.error "Checkout Error: #{error_msg}"
+          return render_error(error_msg, :unprocessable_entity)
+        end
       end
 
       # Check if this is a per-vendor request (single vendor checkout)
       vendor_id_param = params[:vendorId] || params[:vendor_id]
 
-      Rails.logger.info "Checkout Debug: vendor_id_param = #{vendor_id_param.inspect}, params keys = #{params.keys.inspect}"
+      Rails.logger.info "Checkout Debug: vendor_id_param = #{vendor_id_param.inspect}, params keys = #{params.keys.inspect}, demo_mode = #{demo_mode}"
 
       if vendor_id_param
         # Single vendor checkout
@@ -32,6 +37,22 @@ module Api
 
         unless items
           return render_error('No items for this vendor in cart', :bad_request)
+        end
+
+        # Demo mode - create a demo checkout session URL
+        if demo_mode
+          demo_session_id = "demo_cs_#{SecureRandom.hex(16)}"
+          total_cents = items.sum(&:subtotal)
+          
+          render json: {
+            sessionId: demo_session_id,
+            url: "#{frontend_url}/checkout/demo?session_id=#{demo_session_id}&vendor_id=#{vendor.id}&total=#{total_cents}",
+            vendorId: vendor.id,
+            vendorName: vendor.name,
+            demoMode: true,
+            totalCents: total_cents
+          }
+          return
         end
 
         session = create_vendor_checkout_session(vendor, items, current_cart, current_user)

@@ -131,7 +131,8 @@ spring_market = Event.create!(
   end_date: Time.zone.parse('2026-03-21 18:00'),
   category: 'Market',
   attendees: 2500,
-  status: 'upcoming'
+  status: 'upcoming',
+  image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&q=80'
 )
 
 tech_expo = Event.create!(
@@ -142,7 +143,8 @@ tech_expo = Event.create!(
   end_date: Time.zone.parse('2026-05-06 17:00'),
   category: 'Expo',
   attendees: 18000,
-  status: 'upcoming'
+  status: 'upcoming',
+  image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80'
 )
 
 wellness_fair = Event.create!(
@@ -153,7 +155,8 @@ wellness_fair = Event.create!(
   end_date: Time.zone.parse('2026-02-12 16:00'),
   category: 'Wellness',
   attendees: 3200,
-  status: 'past'
+  status: 'past',
+  image: 'https://images.unsplash.com/photo-1545205597-3d9d02c29597?w=800&q=80'
 )
 
 food_fest = Event.create!(
@@ -164,7 +167,8 @@ food_fest = Event.create!(
   end_date: Time.zone.parse('2026-06-15 20:00'),
   category: 'Food',
   attendees: 9200,
-  status: 'upcoming'
+  status: 'upcoming',
+  image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800&q=80'
 )
 
 holiday_bazaar = Event.create!(
@@ -175,7 +179,8 @@ holiday_bazaar = Event.create!(
   end_date: Time.zone.parse('2025-12-12 19:00'),
   category: 'Market',
   attendees: 12000,
-  status: 'active'
+  status: 'active',
+  image: 'https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=800&q=80'
 )
 
 # Memberships
@@ -501,28 +506,36 @@ EventCoordinator.create!([
     name: 'Sarah Johnson',
     organization: 'City Events Management',
     bio: 'With over 10 years of experience organizing large-scale events, Sarah specializes in vendor coordination and logistics.',
-    avatar: '/placeholder.svg?height=200&width=200&text=SJ'
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80'
   },
   {
     id: 'coord_mike_1',
     name: 'Mike Chen',
     organization: 'Festival Productions Inc.',
     bio: 'Mike brings creative vision and technical expertise to every event, ensuring memorable experiences for all attendees.',
-    avatar: '/placeholder.svg?height=200&width=200&text=MC'
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80'
   },
   {
     id: 'coord_emily_1',
     name: 'Emily Rodriguez',
     organization: 'Community Connect',
     bio: 'Emily focuses on bringing communities together through thoughtfully curated local events and marketplaces.',
-    avatar: '/placeholder.svg?height=200&width=200&text=ER'
+    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&q=80'
   },
   {
     id: 'coord_james_1',
     name: 'James Thompson',
     organization: 'Premier Event Solutions',
     bio: 'James specializes in high-end corporate events and exclusive vendor showcases with attention to every detail.',
-    avatar: '/placeholder.svg?height=200&width=200&text=JT'
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&q=80'
+  },
+  {
+    id: 'coord_demo_1',
+    user: coordinator_user,
+    name: 'Demo Coordinator',
+    organization: 'Vehndr Events',
+    bio: 'Demo coordinator account for testing the platform features and capabilities.',
+    avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200&q=80'
   }
 ])
 
