@@ -143,7 +143,7 @@ module Api
     end
 
     def vendor_params
-      params.require(:vendor).permit(:name, :description, :location, :hero_image, categories: [])
+      params.require(:vendor).permit(:name, :description, :location, :hero_image, categories: [], gallery_images: [])
     end
   end
 end

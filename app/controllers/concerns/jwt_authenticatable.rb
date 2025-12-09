@@ -16,8 +16,10 @@ module JwtAuthenticatable
       @current_user = User.find(decoded[:user_id])
     rescue JWT::DecodeError => e
       render json: { error: 'Invalid token' }, status: :unauthorized
+      return false
     rescue ActiveRecord::RecordNotFound
       render json: { error: 'User not found' }, status: :unauthorized
+      return false
     end
   end
 

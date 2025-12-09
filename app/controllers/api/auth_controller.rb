@@ -29,25 +29,48 @@ module Api
       user = User.new(user_params)
       user.role = 'customer' unless params[:role].in?(%w[vendor coordinator])
 
-      if user.save
-        # Merge guest cart with new user cart if applicable
-        if session[:cart_session_id].present?
-          guest_cart = Cart.find_by(session_id: session[:cart_session_id])
-          user.current_cart.merge_guest_cart!(guest_cart) if guest_cart
+      ActiveRecord::Base.transaction do
+        if user.save
+          # Create the appropriate profile based on role
+          business_name = params[:business_name].presence || user.name || "My Business"
+          
+          if user.role == 'vendor'
+            user.create_vendor_profile!(
+              id: SecureRandom.alphanumeric(8),
+              name: business_name
+            )
+          elsif user.role == 'coordinator'
+            user.create_coordinator_profile!(
+              id: SecureRandom.alphanumeric(8),
+              name: business_name,
+              organization: business_name
+            )
+          end
+
+          # Merge guest cart with new user cart if applicable
+          if session[:cart_session_id].present?
+            guest_cart = Cart.find_by(session_id: session[:cart_session_id])
+            user.current_cart.merge_guest_cart!(guest_cart) if guest_cart
+          end
+
+          token = JsonWebToken.encode(user_id: user.id)
+
+          render json: {
+            token: token,
+            user: UserSerializer.new(user)
+          }, status: :created
+        else
+          render json: {
+            error: 'Registration failed',
+            errors: user.errors.full_messages
+          }, status: :unprocessable_entity
         end
-
-        token = JsonWebToken.encode(user_id: user.id)
-
-        render json: {
-          token: token,
-          user: UserSerializer.new(user)
-        }, status: :created
-      else
-        render json: {
-          error: 'Registration failed',
-          errors: user.errors.full_messages
-        }, status: :unprocessable_entity
       end
+    rescue ActiveRecord::RecordInvalid => e
+      render json: {
+        error: 'Registration failed',
+        errors: [e.message]
+      }, status: :unprocessable_entity
     end
 
     # POST /api/auth/logout

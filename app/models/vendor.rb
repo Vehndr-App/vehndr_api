@@ -8,6 +8,7 @@ class Vendor < ApplicationRecord
 
   # Active Storage
   has_one_attached :hero_image
+  has_many_attached :gallery_images
 
   # Relationships
   belongs_to :user, optional: true
@@ -27,8 +28,37 @@ class Vendor < ApplicationRecord
   # Instance methods
   def hero_image_url
     return nil unless hero_image.attached?
-    # Use direct S3 URL for production, url_for for development
-    Rails.env.production? ? hero_image.url : Rails.application.routes.url_helpers.url_for(hero_image)
+    process_image_url(hero_image)
+  end
+
+  def gallery_image_urls
+    return [] unless gallery_images.attached?
+    gallery_images.map { |image| process_image_url(image) }
+  end
+
+  private
+
+  def process_image_url(image)
+    # Check if image needs conversion (HEIC/HEIF format)
+    content_type = image.content_type.to_s.downcase
+    needs_conversion = content_type.include?('heic') || content_type.include?('heif')
+    
+    if needs_conversion && defined?(ImageProcessing)
+      # Use variant to convert HEIC/HEIF to web-compatible JPEG
+      begin
+        variant = image.variant(format: :jpeg, saver: { quality: 85 })
+        return Rails.application.routes.url_helpers.url_for(variant)
+      rescue => e
+        Rails.logger.warn "Image variant conversion failed: #{e.message}"
+      end
+    end
+    
+    # Return original URL (or if conversion failed)
+    if Rails.env.production?
+      image.url
+    else
+      Rails.application.routes.url_helpers.url_for(image)
+    end
   end
 
   # Stripe Connect helpers

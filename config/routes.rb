@@ -25,7 +25,7 @@ Rails.application.routes.draw do
     resources :products, only: [:index, :show, :create, :update, :destroy]
 
     # Events
-    resources :events, only: [:index, :show] do
+    resources :events, only: [:index, :show, :create, :update] do
       collection do
         post 'from_url', action: :create_from_url
         get 'my_events', action: :my_events
@@ -33,6 +33,7 @@ Rails.application.routes.draw do
       member do
         get 'dashboard', action: :dashboard
         get 'recommended_vendors', action: :recommended_vendors
+        patch 'publish', action: :publish
       end
     end
 

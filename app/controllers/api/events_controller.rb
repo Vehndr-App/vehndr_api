@@ -1,6 +1,9 @@
 module Api
   class EventsController < BaseController
-    before_action :authenticate_request, only: [:create_from_url, :my_events, :dashboard, :recommended_vendors]
+    before_action :authenticate_request, only: [:create, :create_from_url, :my_events, :dashboard, :recommended_vendors, :update, :publish]
+    before_action :require_coordinator, only: [:create, :create_from_url, :my_events, :dashboard, :recommended_vendors, :update, :publish]
+    before_action :set_event, only: [:dashboard, :recommended_vendors, :update, :publish]
+    before_action :authorize_event, only: [:dashboard, :recommended_vendors, :update, :publish]
 
     def index
       events = Event.includes(:vendors)
@@ -26,37 +29,40 @@ module Api
     end
 
     def my_events
-      unless current_user.role == 'coordinator'
-        return render json: { error: 'Only coordinators can access this endpoint' }, status: :forbidden
-      end
-
-      # Auto-create coordinator profile if it doesn't exist
-      coordinator = current_user.coordinator_profile
-      unless coordinator
-        coordinator = EventCoordinator.create!(
-          user: current_user,
-          name: current_user.name || current_user.email
-        )
-      end
-
-      events = coordinator.events.order(start_date: :desc)
+      events = current_coordinator.events.order(start_date: :desc)
       render :index, locals: { events: }
     end
 
+    def create
+      event = current_coordinator.events.new(event_params)
+      
+      if event.save
+        render :show, locals: { event: }, status: :created
+      else
+        render json: { error: 'Event creation failed', errors: event.errors.full_messages }, status: :unprocessable_entity
+      end
+    rescue StandardError => e
+      Rails.logger.error "Event creation error: #{e.message}\n#{e.backtrace.first(10).join("\n")}"
+      render json: { error: "Server error: #{e.message}" }, status: :internal_server_error
+    end
+
+    def update
+      if @event.update(event_params)
+        render :show, locals: { event: @event }
+      else
+        render json: { error: 'Event update failed', errors: @event.errors.full_messages }, status: :unprocessable_entity
+      end
+    end
+
+    def publish
+      if @event.update(status: 'upcoming')
+        render :show, locals: { event: @event }
+      else
+        render json: { error: 'Failed to publish event', errors: @event.errors.full_messages }, status: :unprocessable_entity
+      end
+    end
+
     def create_from_url
-      unless current_user.role == 'coordinator'
-        return render json: { error: 'Only coordinators can create events' }, status: :forbidden
-      end
-
-      # Get or create coordinator profile for current user
-      coordinator = current_user.coordinator_profile
-      unless coordinator
-        coordinator = EventCoordinator.create!(
-          user: current_user,
-          name: current_user.name || current_user.email
-        )
-      end
-
       url = params[:url]
       unless url.present?
         return render json: { error: 'URL is required' }, status: :unprocessable_entity
@@ -64,7 +70,7 @@ module Api
 
       begin
         event_data = EventFromUrlService.call(url)
-        event = coordinator.events.create!(event_data)
+        event = current_coordinator.events.create!(event_data)
         render :show, locals: { event: }, status: :created
       rescue EventFromUrlService::InvalidUrlError => e
         render json: { error: e.message }, status: :unprocessable_entity
@@ -76,20 +82,8 @@ module Api
     end
 
     def dashboard
-      unless current_user.role == 'coordinator'
-        return render json: { error: 'Only coordinators can access event dashboards' }, status: :forbidden
-      end
-
-      event = Event.find(params[:id])
-
-      # Verify this event belongs to the current coordinator
-      coordinator = current_user.coordinator_profile
-      unless event.coordinator_id == coordinator&.id
-        return render json: { error: 'Not authorized to view this event' }, status: :forbidden
-      end
-
       # Get vendors participating in this event with their sales data
-      vendors_data = event.vendors.map do |vendor|
+      vendors_data = @event.vendors.map do |vendor|
         # Calculate total sales for this vendor at this event
         total_sales = Order.joins(:order_items)
                           .where(order_items: { vendor_id: vendor.id })
@@ -111,16 +105,16 @@ module Api
 
       render json: {
         event: {
-          id: event.id,
-          name: event.name,
-          description: event.description,
-          location: event.location,
-          startDate: event.start_date,
-          endDate: event.end_date,
-          image: event.image,
-          category: event.category,
-          attendees: event.attendees,
-          status: event.status
+          id: @event.id,
+          name: @event.name,
+          description: @event.description,
+          location: @event.location,
+          startDate: @event.start_date,
+          endDate: @event.end_date,
+          image: @event.image,
+          category: @event.category,
+          attendees: @event.attendees,
+          status: @event.status
         },
         vendors: vendors_data,
         totalSales: total_event_sales
@@ -128,20 +122,8 @@ module Api
     end
 
     def recommended_vendors
-      unless current_user.role == 'coordinator'
-        return render json: { error: 'Only coordinators can access recommendations' }, status: :forbidden
-      end
-
-      event = Event.find(params[:id])
-
-      # Verify this event belongs to the current coordinator
-      coordinator = current_user.coordinator_profile
-      unless event.coordinator_id == coordinator&.id
-        return render json: { error: 'Not authorized to view this event' }, status: :forbidden
-      end
-
       # Use nearest neighbors to find vendors with similar embeddings
-      vendors = Vendor.nearest_neighbors(:embedding, event.embedding, distance: 'euclidean').first(3).map do |vendor|
+      vendors = Vendor.nearest_neighbors(:embedding, @event.embedding, distance: 'euclidean').first(3).map do |vendor|
         {
           id: vendor.id,
           name: vendor.name,
@@ -152,6 +134,48 @@ module Api
       end
 
       render json: { vendors: vendors }
+    end
+
+    private
+
+    def require_coordinator
+      unless current_user&.role == 'coordinator'
+        render json: { error: 'Only coordinators can access this resource' }, status: :forbidden
+        return
+      end
+    end
+
+    def current_coordinator
+      @current_coordinator ||= begin
+        coordinator = current_user.coordinator_profile
+        unless coordinator
+          coordinator = EventCoordinator.create!(
+            user: current_user,
+            name: current_user.name || current_user.email
+          )
+        end
+        coordinator
+      end
+    end
+
+    def set_event
+      @event = Event.find(params[:id])
+    end
+
+    def authorize_event
+      unless @event.coordinator_id == current_coordinator.id
+        render json: { error: 'Not authorized to access this event' }, status: :forbidden
+        return
+      end
+    end
+
+    def event_params
+      params.permit(
+        :name, :description, :location, :start_date, :end_date, 
+        :image, :category, :attendees, :status, :theme, :cost_per_person,
+        :capacity, :guests_can_invite, :dress_code, :playlist_link,
+        :registry_link, :external_link
+      )
     end
   end
 end
