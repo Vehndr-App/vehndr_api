@@ -115,7 +115,7 @@ module Api
     def webhook
       payload = request.body.read
       sig_header = request.headers['Stripe-Signature']
-      endpoint_secret = Rails.application.credentials.stripe[:webhook_secret]
+      endpoint_secret = Rails.application.credentials.dig(:stripe, :webhook_secret) || ENV['VEHNDR_STRIPE_WEBHOOK_SECRET']
 
       begin
         event = Stripe::Webhook.construct_event(
