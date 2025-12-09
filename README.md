@@ -154,7 +154,7 @@ For production, set these environment variables:
 ```bash
 DATABASE_URL=postgres://user:pass@host/database
 STRIPE_SECRET_KEY=sk_live_your_stripe_key
-STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
+VEHNDR_STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 SECRET_KEY_BASE=your_secret_key_base
 ```
 
