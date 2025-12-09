@@ -6,6 +6,7 @@ class User < ApplicationRecord
   has_one :coordinator_profile, class_name: 'EventCoordinator', dependent: :destroy
   has_many :carts, dependent: :destroy
   has_many :orders, dependent: :nullify
+  has_many :password_reset_tokens, dependent: :destroy
 
   # Validations
   validates :email, presence: true, uniqueness: { case_sensitive: false }, 

@@ -61,6 +61,13 @@ Rails.application.routes.draw do
       get 'current_user', action: :current_user_info
     end
 
+    # Password Reset
+    namespace :password do
+      post 'forgot', action: :forgot
+      post 'reset', action: :reset
+      get 'validate_token', action: :validate_token
+    end
+
     # Event Coordinators
     resources :coordinators, controller: 'event_coordinators', only: [:index, :show]
 

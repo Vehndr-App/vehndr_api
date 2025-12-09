@@ -151,6 +151,18 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_07_005039) do
     t.check_constraint "user_id IS NOT NULL OR guest_email IS NOT NULL", name: "orders_must_have_user_or_guest"
   end
 
+  create_table "password_reset_tokens", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "user_id", null: false
+    t.string "token", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "used_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["token"], name: "index_password_reset_tokens_on_token", unique: true
+    t.index ["user_id", "expires_at"], name: "index_password_reset_tokens_on_user_id_and_expires_at"
+    t.index ["user_id"], name: "index_password_reset_tokens_on_user_id"
+  end
+
   create_table "product_options", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "product_id", null: false
     t.string "option_id", null: false
@@ -228,6 +240,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_07_005039) do
   add_foreign_key "order_items", "products"
   add_foreign_key "orders", "users"
   add_foreign_key "orders", "vendors"
+  add_foreign_key "password_reset_tokens", "users"
   add_foreign_key "product_options", "products"
   add_foreign_key "products", "vendors"
   add_foreign_key "vendors", "users"
