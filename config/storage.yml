@@ -1,4 +1,4 @@
-test:
+vehndr.apptest:
   service: Disk
   root: <%= Rails.root.join("tmp/storage") %>
 
@@ -8,10 +8,10 @@ local:
 
 amazon:
   service: S3
-  access_key_id: <%= ENV['AWS_ACCESS_KEY_ID'] %>
-  secret_access_key: <%= ENV['AWS_SECRET_KEY'] %>
+  access_key_id: <%= ENV['VEHNDR_AWS_ACCESS_KEY_ID'] %>
+  secret_access_key: <%= ENV['VEHNDR_AWS_SECRET_ACCESS_KEY'] %>
   region: us-east-2
-  bucket: pepur-files
+  bucket: vehndr
 
 # Remember not to checkin your GCS keyfile to a repository
 # google:
