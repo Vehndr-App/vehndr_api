@@ -30,9 +30,13 @@ module Api
         return render json: { error: 'Only coordinators can access this endpoint' }, status: :forbidden
       end
 
+      # Auto-create coordinator profile if it doesn't exist
       coordinator = current_user.coordinator_profile
       unless coordinator
-        return render json: { error: 'Coordinator profile not found' }, status: :not_found
+        coordinator = EventCoordinator.create!(
+          user: current_user,
+          name: current_user.name || current_user.email
+        )
       end
 
       events = coordinator.events.order(start_date: :desc)
