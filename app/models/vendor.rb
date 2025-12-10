@@ -36,7 +36,6 @@ class Vendor < ApplicationRecord
     gallery_images.map { |image| process_image_url(image) }
   end
 
-  private
 
   def process_image_url(image)
     # Check if image needs conversion (HEIC/HEIF format)
