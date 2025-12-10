@@ -1,6 +1,6 @@
 module Api
   class PasswordController < BaseController
-    skip_before_action :authenticate_request, only: [:forgot, :reset, :validate_token]
+    # skip_before_action :authenticate_request, only: [:forgot, :reset, :validate_token]
 
     # POST /api/password/forgot
     def forgot
