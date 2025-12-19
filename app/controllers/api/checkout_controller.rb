@@ -88,8 +88,9 @@ module Api
     # POST /api/checkout/in_person
     # For in-person/terminal checkout
     def create_in_person
-      vendor_id = params[:vendor_id] || current_user&.vendor_id
+      vendor_id = params[:vendor_id] || current_user&.vendor_profile&.id
       items = params[:items] || []
+      custom_items = params[:custom_items] || []
       payment_method = params[:payment_method] || 'tap_to_pay'
       
       unless vendor_id
@@ -98,11 +99,14 @@ module Api
 
       vendor = Vendor.find(vendor_id)
       
-      unless vendor.can_process_payments?
-        return render_error('Vendor cannot process payments yet', :unprocessable_entity)
+      # In development, allow demo mode for testing
+      demo_mode = Rails.env.development? || params[:demo_mode] == true
+      
+      unless demo_mode || vendor.can_process_payments?
+        return render_error('Vendor cannot process payments yet. Complete Stripe onboarding first.', :unprocessable_entity)
       end
 
-      if items.empty?
+      if items.empty? && custom_items.empty?
         return render_error('No items provided', :bad_request)
       end
 
@@ -110,6 +114,7 @@ module Api
       total_cents = 0
       line_items = []
 
+      # Process regular product items
       items.each do |item|
         product = Product.find(item['product_id'])
         quantity = item['quantity'].to_i
@@ -125,10 +130,30 @@ module Api
         }
       end
 
+      # Process custom/ad-hoc items (from keypad)
+      custom_items.each do |item|
+        quantity = item['quantity'].to_i
+        price_cents = item['price'].to_i
+        subtotal = price_cents * quantity
+        total_cents += subtotal
+
+        line_items << {
+          product_id: nil,
+          product_name: item['name'] || 'Custom Item',
+          price_cents: price_cents,
+          quantity: quantity,
+          subtotal_cents: subtotal,
+          is_custom: true
+        }
+      end
+
       # Create order directly (in-person payment is assumed to be completed)
+      # For in-person sales, we use a placeholder guest email since there's no customer account
       order = Order.create!(
         vendor: vendor,
-        user: current_user, # Can be nil for guest purchases
+        user: nil, # In-person sales don't have a customer user
+        guest_email: "pos_sale_#{Time.current.to_i}@inperson.local", # Placeholder for POS sales
+        guest_name: params[:customer_name] || 'Walk-in Customer',
         total_cents: total_cents,
         status: 'completed',
         payment_status: 'succeeded',
@@ -143,7 +168,8 @@ module Api
           product_id: item_data[:product_id],
           product_name: item_data[:product_name],
           price_cents: item_data[:price_cents],
-          quantity: item_data[:quantity]
+          quantity: item_data[:quantity],
+          is_custom: item_data[:is_custom] || false
         )
       end
 

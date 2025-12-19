@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_12_18_000001) do
+ActiveRecord::Schema[8.0].define(version: 2025_12_18_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -110,13 +110,14 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_18_000001) do
 
   create_table "order_items", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "order_id", null: false
-    t.string "product_id", null: false
+    t.string "product_id"
     t.integer "quantity", null: false
     t.integer "price_cents", null: false
     t.jsonb "selected_options", default: {}
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "product_name"
+    t.boolean "is_custom", default: false
     t.index ["order_id"], name: "index_order_items_on_order_id"
     t.index ["product_id"], name: "index_order_items_on_product_id"
   end
@@ -242,7 +243,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_18_000001) do
   add_foreign_key "event_vendors", "vendors"
   add_foreign_key "events", "event_coordinators", column: "coordinator_id"
   add_foreign_key "order_items", "orders"
-  add_foreign_key "order_items", "products"
   add_foreign_key "orders", "users"
   add_foreign_key "orders", "vendors"
   add_foreign_key "password_reset_tokens", "users"
