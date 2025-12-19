@@ -1,5 +1,145 @@
 module Api
   class CheckoutController < BaseController
+    # POST /api/checkout/payment_intent
+    def create_payment_intent
+      vendor_id = params[:vendorId] || params[:vendor_id]
+
+      unless vendor_id
+        return render_error('Vendor ID required', :bad_request)
+      end
+
+      vendor = Vendor.find(vendor_id)
+
+      # Get items from params or from cart
+      items_param = params[:items]
+
+      if items_param.present?
+        # Calculate from provided items
+        total_cents = 0
+        items_param.each do |item|
+          product_id = item[:productId] || item['productId']
+          product = Product.find_by(id: product_id)
+
+          unless product
+            return render_error("Product not found: #{product_id}", :not_found)
+          end
+
+          quantity = (item[:quantity] || item['quantity']).to_i
+          total_cents += product.price * quantity
+        end
+      else
+        # Get from cart
+        cart_items = current_cart.cart_items.where(vendor_id: vendor_id).includes(:product)
+        if cart_items.empty?
+          return render_error('No items for this vendor in cart', :bad_request)
+        end
+        total_cents = cart_items.sum(&:subtotal)
+      end
+
+      # Calculate application fee
+      fee_cents = calculate_application_fee(total_cents)
+      fee_percent = ENV.fetch('STRIPE_APPLICATION_FEE_PERCENT', '10.0').to_f
+
+      # Create PaymentIntent with connected account
+      payment_intent_params = {
+        amount: total_cents,
+        currency: 'usd',
+        application_fee_amount: fee_cents,
+        transfer_data: {
+          destination: vendor.stripe_account_id
+        },
+        metadata: {
+          vendor_id: vendor.id,
+          vendor_name: vendor.name,
+          cart_id: current_cart.id,
+          user_id: current_user&.id,
+          application_fee_cents: fee_cents,
+          platform_fee_percent: fee_percent
+        },
+        automatic_payment_methods: {
+          enabled: true
+        }
+      }
+
+      # For guest checkout, configure billing details collection
+      unless current_user
+        payment_intent_params[:payment_method_options] = {
+          card: {
+            setup_future_usage: nil
+          }
+        }
+      end
+
+      payment_intent = Stripe::PaymentIntent.create(payment_intent_params)
+
+      render json: {
+        clientSecret: payment_intent.client_secret,
+        paymentIntentId: payment_intent.id,
+        vendorId: vendor.id,
+        vendorName: vendor.name,
+        totalCents: total_cents
+      }
+    rescue Stripe::StripeError => e
+      Rails.logger.error "Stripe PaymentIntent Error: #{e.message}"
+      render_error(e.message, :unprocessable_entity)
+    rescue ActiveRecord::RecordNotFound => e
+      render_error("Resource not found: #{e.message}", :not_found)
+    end
+
+    # POST /api/checkout/confirm_payment
+    def confirm_payment
+      payment_intent_id = params[:paymentIntentId] || params[:payment_intent_id]
+
+      unless payment_intent_id
+        return render_error('Payment Intent ID required', :bad_request)
+      end
+
+      # Retrieve the PaymentIntent to verify status
+      payment_intent = Stripe::PaymentIntent.retrieve(payment_intent_id)
+
+      if payment_intent.status == 'succeeded'
+        # Create order from the payment intent
+        vendor_id = payment_intent.metadata['vendor_id']
+        cart_id = payment_intent.metadata['cart_id']
+        user_id = payment_intent.metadata['user_id']
+
+        cart = Cart.find(cart_id)
+        user = User.find_by(id: user_id)
+        vendor = Vendor.find(vendor_id)
+
+        # Get cart items for this vendor
+        cart_items = cart.cart_items.where(vendor_id: vendor_id).includes(:product)
+
+        if cart_items.empty?
+          return render_error('No items found for this vendor', :bad_request)
+        end
+
+        # Create the order
+        order = create_order_from_payment_intent(user, vendor, cart_items, payment_intent)
+
+        if order.persisted?
+          # Clear cart items for this vendor
+          cart_items.destroy_all
+
+          render json: {
+            success: true,
+            orderId: order.id,
+            message: 'Payment successful'
+          }
+        else
+          Rails.logger.error "Order creation failed: #{order.errors.full_messages.join(', ')}"
+          return render_error("Failed to create order: #{order.errors.full_messages.join(', ')}", :unprocessable_entity)
+        end
+      else
+        render_error("Payment not completed. Status: #{payment_intent.status}", :unprocessable_entity)
+      end
+    rescue Stripe::StripeError => e
+      Rails.logger.error "Stripe Error in confirm_payment: #{e.message}"
+      render_error(e.message, :unprocessable_entity)
+    rescue ActiveRecord::RecordNotFound => e
+      render_error("Resource not found: #{e.message}", :not_found)
+    end
+
     # POST /api/checkout/sessions
     def create_session
       cart_items = current_cart.cart_items.includes(:product, :vendor)
@@ -231,12 +371,21 @@ module Api
       sig_header = request.headers['Stripe-Signature']
       endpoint_secret = Rails.application.credentials.dig(:stripe, :webhook_secret) || ENV['VEHNDR_STRIPE_WEBHOOK_SECRET']
 
+      Rails.logger.info "=== Stripe Webhook Received ==="
+      Rails.logger.info "Signature present: #{sig_header.present?}"
+      Rails.logger.info "Endpoint secret configured: #{endpoint_secret.present?}"
+
       begin
         event = Stripe::Webhook.construct_event(
           payload, sig_header, endpoint_secret
         )
-      rescue JSON::ParserError, Stripe::SignatureVerificationError => e
-        return render_error('Invalid webhook', :bad_request)
+        Rails.logger.info "Webhook event constructed successfully: #{event['type']} - #{event['id']}"
+      rescue JSON::ParserError => e
+        Rails.logger.error "Webhook JSON parse error: #{e.message}"
+        return render_error('Invalid webhook - JSON parse error', :bad_request)
+      rescue Stripe::SignatureVerificationError => e
+        Rails.logger.error "Webhook signature verification failed: #{e.message}"
+        return render_error('Invalid webhook - signature verification failed', :bad_request)
       end
 
       # TODO: Add idempotency check with WebhookEvent model
@@ -247,23 +396,30 @@ module Api
       case event['type']
       when 'checkout.session.completed'
         session = event['data']['object']
+        Rails.logger.info "Processing checkout.session.completed"
         process_successful_payment(session)
 
       when 'payment_intent.succeeded'
         payment_intent = event['data']['object']
+        Rails.logger.info "Processing payment_intent.succeeded"
         handle_payment_intent_succeeded(payment_intent)
 
       when 'payment_intent.payment_failed'
         payment_intent = event['data']['object']
+        Rails.logger.info "Processing payment_intent.payment_failed"
         handle_payment_failed(payment_intent)
 
       when 'account.updated'
         account = event['data']['object']
+        Rails.logger.info "Processing account.updated for account: #{account['id']}"
         handle_account_updated(account)
 
       when 'charge.refunded'
         charge = event['data']['object']
+        Rails.logger.info "Processing charge.refunded"
         handle_charge_refunded(charge)
+      else
+        Rails.logger.info "Unhandled webhook event type: #{event['type']}"
       end
 
       # Log webhook event
@@ -369,6 +525,58 @@ module Api
       else
         cart.cart_items.destroy_all
       end
+    end
+
+    def create_order_from_payment_intent(user, vendor, items, payment_intent)
+      total_cents = items.sum(&:subtotal)
+      fee_cents = payment_intent.metadata['application_fee_cents'].to_i
+      fee_percent = payment_intent.metadata['platform_fee_percent'].to_f
+
+      order_params = {
+        vendor: vendor,
+        total_cents: total_cents,
+        status: 'confirmed',
+        stripe_payment_intent_id: payment_intent.id,
+        stripe_charge_id: payment_intent.latest_charge,
+        application_fee_cents: fee_cents,
+        platform_fee_percent: fee_percent,
+        payment_status: 'succeeded'
+      }
+
+      if user
+        order_params[:user] = user
+      else
+        # For guest checkout, extract email from billing details
+        # Fetch the charge to get billing details
+        guest_email = 'guest@vehndr.local'
+        guest_name = 'Guest Customer'
+
+        if payment_intent.latest_charge.present?
+          begin
+            charge = Stripe::Charge.retrieve(payment_intent.latest_charge)
+            billing_details = charge.billing_details
+            guest_email = billing_details['email'] || guest_email
+            guest_name = billing_details['name'] || guest_name
+          rescue => e
+            Rails.logger.error "Failed to retrieve charge billing details: #{e.message}"
+          end
+        end
+
+        order_params[:guest_email] = guest_email
+        order_params[:guest_name] = guest_name
+      end
+
+      order = Order.create(order_params)
+
+      if order.persisted?
+        order.create_from_cart_items!(items)
+        # Broadcast to vendor
+        trigger_vendor_webhook(order)
+      else
+        Rails.logger.error "Order creation validation failed: #{order.errors.full_messages.join(', ')}"
+      end
+
+      order
     end
 
     def create_order_from_session(user, vendor, items, session, guest_data = nil)
@@ -482,11 +690,27 @@ module Api
     end
 
     def handle_account_updated(account)
+      Rails.logger.info "=== Handling account.updated webhook ==="
+      Rails.logger.info "Account ID: #{account['id']}"
+      Rails.logger.info "Charges enabled: #{account['charges_enabled']}"
+      Rails.logger.info "Payouts enabled: #{account['payouts_enabled']}"
+      Rails.logger.info "Details submitted: #{account['details_submitted']}"
+
       vendor = Vendor.find_by(stripe_account_id: account['id'])
-      return unless vendor
+
+      if vendor.nil?
+        Rails.logger.warn "No vendor found with stripe_account_id: #{account['id']}"
+        return
+      end
+
+      Rails.logger.info "Found vendor: #{vendor.name} (ID: #{vendor.id})"
+      Rails.logger.info "Vendor before update - charges_enabled: #{vendor.stripe_charges_enabled}, details_submitted: #{vendor.stripe_details_submitted}"
 
       StripeConnectService.update_vendor_from_account(vendor, account)
-      Rails.logger.info "Stripe account updated for Vendor #{vendor.name}"
+      vendor.reload
+
+      Rails.logger.info "Vendor after update - charges_enabled: #{vendor.stripe_charges_enabled}, details_submitted: #{vendor.stripe_details_submitted}"
+      Rails.logger.info "Stripe account successfully updated for Vendor #{vendor.name}"
     end
 
     def handle_charge_refunded(charge)

@@ -49,6 +49,8 @@ Rails.application.routes.draw do
     # Checkout
     namespace :checkout do
       post 'sessions', action: :create_session
+      post 'payment_intent', action: :create_payment_intent
+      post 'confirm_payment', action: :confirm_payment
       post 'in_person', action: :create_in_person
       get 'success', action: :success
       get 'cancel', action: :cancel

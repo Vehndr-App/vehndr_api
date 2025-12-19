@@ -46,6 +46,7 @@ class Order < ApplicationRecord
       cart_items.each do |item|
         order_items.create!(
           product: item.product,
+          product_name: item.product.name,
           quantity: item.quantity,
           price_cents: item.product.price,
           selected_options: item.selected_options
