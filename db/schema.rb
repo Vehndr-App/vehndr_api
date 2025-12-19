@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_12_09_223323) do
+ActiveRecord::Schema[8.0].define(version: 2025_12_18_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -116,6 +116,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_09_223323) do
     t.jsonb "selected_options", default: {}
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "product_name"
     t.index ["order_id"], name: "index_order_items_on_order_id"
     t.index ["product_id"], name: "index_order_items_on_product_id"
   end
@@ -140,6 +141,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_09_223323) do
     t.integer "refund_amount_cents", default: 0
     t.datetime "refunded_at"
     t.string "stripe_refund_id"
+    t.boolean "is_in_person", default: false
+    t.string "payment_method"
+    t.index ["is_in_person"], name: "index_orders_on_is_in_person"
+    t.index ["payment_method"], name: "index_orders_on_payment_method"
     t.index ["payment_status"], name: "index_orders_on_payment_status"
     t.index ["refund_status"], name: "index_orders_on_refund_status"
     t.index ["status"], name: "index_orders_on_status"

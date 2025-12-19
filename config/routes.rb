@@ -49,6 +49,7 @@ Rails.application.routes.draw do
     # Checkout
     namespace :checkout do
       post 'sessions', action: :create_session
+      post 'in_person', action: :create_in_person
       get 'success', action: :success
       get 'cancel', action: :cancel
       post 'webhook', action: :webhook

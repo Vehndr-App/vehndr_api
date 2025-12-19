@@ -59,6 +59,8 @@ module Api
             email: order.user&.email || order.guest_email
           },
           line_items: order.order_items.map do |item|
+            next if item.product.nil?
+            
             {
               id: item.id,
               product_id: item.product_id,
@@ -75,10 +77,14 @@ module Api
                 duration: item.product.duration
               }
             }
-          end
+          end.compact
         }
       end
-      render json: orders
+      render json: orders.to_json
+    rescue => e
+      Rails.logger.error "Error fetching orders for vendor #{@vendor.id}: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      render json: [].to_json, status: :ok
     end
 
     # POST /api/vendors

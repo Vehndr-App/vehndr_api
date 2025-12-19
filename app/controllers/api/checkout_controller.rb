@@ -85,6 +85,94 @@ module Api
       render_error(e.message, :unprocessable_entity)
     end
 
+    # POST /api/checkout/in_person
+    # For in-person/terminal checkout
+    def create_in_person
+      vendor_id = params[:vendor_id] || current_user&.vendor_id
+      items = params[:items] || []
+      payment_method = params[:payment_method] || 'tap_to_pay'
+      
+      unless vendor_id
+        return render_error('Vendor ID required', :bad_request)
+      end
+
+      vendor = Vendor.find(vendor_id)
+      
+      unless vendor.can_process_payments?
+        return render_error('Vendor cannot process payments yet', :unprocessable_entity)
+      end
+
+      if items.empty?
+        return render_error('No items provided', :bad_request)
+      end
+
+      # Calculate totals
+      total_cents = 0
+      line_items = []
+
+      items.each do |item|
+        product = Product.find(item['product_id'])
+        quantity = item['quantity'].to_i
+        subtotal = product.price * quantity
+        total_cents += subtotal
+
+        line_items << {
+          product_id: product.id,
+          product_name: product.name,
+          price_cents: product.price,
+          quantity: quantity,
+          subtotal_cents: subtotal
+        }
+      end
+
+      # Create order directly (in-person payment is assumed to be completed)
+      order = Order.create!(
+        vendor: vendor,
+        user: current_user, # Can be nil for guest purchases
+        total_cents: total_cents,
+        status: 'completed',
+        payment_status: 'succeeded',
+        payment_method: payment_method,
+        is_in_person: true,
+        stripe_payment_intent_id: "in_person_#{SecureRandom.hex(16)}"
+      )
+
+      # Create order items
+      line_items.each do |item_data|
+        order.order_items.create!(
+          product_id: item_data[:product_id],
+          product_name: item_data[:product_name],
+          price_cents: item_data[:price_cents],
+          quantity: item_data[:quantity]
+        )
+      end
+
+      # Broadcast to vendor's orders channel
+      ActionCable.server.broadcast(
+        "vendor_orders_#{vendor.id}",
+        {
+          type: 'new_order',
+          order: order.as_json(
+            include: {
+              order_items: { only: [:id, :product_name, :price_cents, :quantity] }
+            }
+          )
+        }
+      )
+
+      render json: {
+        success: true,
+        order_id: order.id,
+        total_cents: total_cents,
+        message: 'Payment processed successfully'
+      }
+    rescue ActiveRecord::RecordNotFound => e
+      render_error("Product not found: #{e.message}", :not_found)
+    rescue => e
+      Rails.logger.error "In-person checkout error: #{e.message}\n#{e.backtrace.join("\n")}"
+      render_error(e.message, :unprocessable_entity)
+    end
+
     # GET /api/checkout/success
     def success
       session_id = params[:session_id]
