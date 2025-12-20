@@ -47,10 +47,16 @@ module Api
       Rails.logger.info "Product ID: #{@product.id}"
       Rails.logger.info "Images param present: #{params[:images].present?}"
       Rails.logger.info "Images param class: #{params[:images].class}" if params[:images].present?
+      Rails.logger.info "Keep images param: #{params[:keep_images]}"
 
       if @product.update(product_params)
+        # Handle image deletions - remove images not in the keep_images list
+        handle_image_deletions if params[:keep_images].present?
+
+        # Attach new images
         attach_images if params[:images].present?
-        Rails.logger.info "Images attached. Count: #{@product.images.count}"
+
+        Rails.logger.info "Images after update. Count: #{@product.images.count}"
         render json: @product, serializer: ProductSerializer
       else
         render json: { errors: @product.errors.full_messages }, status: :unprocessable_entity
@@ -91,6 +97,26 @@ module Api
         @product.images.attach(params[:images])
       end
       Rails.logger.info "Images attached. Count: #{@product.images.count}"
+    end
+
+    def handle_image_deletions
+      keep_images = params[:keep_images] || []
+      Rails.logger.info "Keep images URLs: #{keep_images.inspect}"
+
+      # Get current image URLs
+      current_images = @product.images.map do |img|
+        Rails.env.production? ? img.url : Rails.application.routes.url_helpers.url_for(img)
+      end
+      Rails.logger.info "Current image URLs: #{current_images.inspect}"
+
+      # Find and purge images that should be deleted (not in keep_images list)
+      @product.images.each do |image|
+        image_url = Rails.env.production? ? image.url : Rails.application.routes.url_helpers.url_for(image)
+        unless keep_images.include?(image_url)
+          Rails.logger.info "Purging image: #{image_url}"
+          image.purge
+        end
+      end
     end
   end
 end
