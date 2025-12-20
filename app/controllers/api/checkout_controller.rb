@@ -58,6 +58,9 @@ module Api
         },
         automatic_payment_methods: {
           enabled: true
+        },
+        automatic_tax: {
+          enabled: true
         }
       }
 
