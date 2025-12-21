@@ -59,9 +59,6 @@ module Api
         automatic_payment_methods: {
           enabled: true
         },
-        automatic_tax: {
-          enabled: true
-        }
       }
 
       # For guest checkout, configure billing details collection
