@@ -5,6 +5,7 @@ class Product < ApplicationRecord
 
   self.primary_key = :id
   before_create :generate_product_id
+  before_create :set_default_time_slots, if: :is_service?
 
   # Active Storage attachments
   has_many_attached :images
@@ -81,11 +82,28 @@ class Product < ApplicationRecord
     end.compact
   end
 
+  # Generate default time slots for a service
+  def self.default_time_slots
+    [
+      '9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
+      '12:00 PM', '12:30 PM', '1:00 PM', '1:30 PM', '2:00 PM', '2:30 PM',
+      '3:00 PM', '3:30 PM', '4:00 PM', '4:30 PM', '5:00 PM', '5:30 PM',
+      '6:00 PM', '6:30 PM', '7:00 PM', '7:30 PM', '8:00 PM'
+    ]
+  end
+
   private
 
   def generate_product_id
     prefix = is_service? ? "service" : "prod"
     self.id = "#{prefix}_#{Nanoid.generate(size: 10)}" if id.blank?
+  end
+
+  def set_default_time_slots
+    # Only set default time slots if none are provided
+    if available_time_slots.blank?
+      self.available_time_slots = self.class.default_time_slots
+    end
   end
 end
 
