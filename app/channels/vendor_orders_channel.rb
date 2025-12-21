@@ -5,7 +5,7 @@ class VendorOrdersChannel < ApplicationCable::Channel
     # Ensure user is authenticated and is a vendor
     if current_user && current_user.role == 'vendor' && current_user.vendor_profile
       vendor = current_user.vendor_profile
-      stream_for vendor
+      stream_from "vendor_orders_#{vendor.id}"
     else
       reject
     end

@@ -626,8 +626,8 @@ module Api
 
     def trigger_vendor_webhook(order)
       # Broadcast to ActionCable channel for real-time dashboard updates
-      VendorOrdersChannel.broadcast_to(
-        order.vendor,
+      ActionCable.server.broadcast(
+        "vendor_orders_#{order.vendor.id}",
         {
           event: 'order.created',
           order: {
