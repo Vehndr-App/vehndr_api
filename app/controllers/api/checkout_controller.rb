@@ -626,26 +626,32 @@ module Api
 
     def trigger_vendor_webhook(order)
       # Broadcast to ActionCable channel for real-time dashboard updates
-      vendor_id = order.vendor_id.to_s
+      # Extract all values as primitives to avoid Solid Cable serialization issues
+      vendor_id_str = order.vendor_id.to_s
+      order_id_str = order.id.to_s
+      total = order.total_cents.to_i
+      status_str = order.status.to_s
+      created_str = order.created_at.iso8601.to_s
+      customer_name_str = order.customer_name.to_s
+      customer_email_str = order.customer_email.to_s
 
-      ActionCable.server.broadcast(
-        "vendor_orders_#{vendor_id}",
-        {
-          event: 'order.created',
-          order: {
-            id: order.id.to_s,
-            total_cents: order.total_cents,
-            status: order.status.to_s,
-            created_at: order.created_at.iso8601,
-            customer: {
-              name: order.customer_name.to_s,
-              email: order.customer_email.to_s
-            }
+      message = {
+        'event' => 'order.created',
+        'order' => {
+          'id' => order_id_str,
+          'total_cents' => total,
+          'status' => status_str,
+          'created_at' => created_str,
+          'customer' => {
+            'name' => customer_name_str,
+            'email' => customer_email_str
           }
-        }.deep_stringify_keys
-      )
+        }
+      }
 
-      Rails.logger.info "ActionCable broadcast: New Order ##{order.id} for Vendor #{order.vendor.name}"
+      ActionCable.server.broadcast("vendor_orders_#{vendor_id_str}", message)
+
+      Rails.logger.info "ActionCable broadcast: New Order ##{order_id_str} for Vendor #{vendor_id_str}"
     end
 
     def extract_guest_data_from_session(stripe_session)
