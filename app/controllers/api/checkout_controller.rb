@@ -626,21 +626,23 @@ module Api
 
     def trigger_vendor_webhook(order)
       # Broadcast to ActionCable channel for real-time dashboard updates
+      vendor_id = order.vendor_id.to_s
+
       ActionCable.server.broadcast(
-        "vendor_orders_#{order.vendor.id}",
+        "vendor_orders_#{vendor_id}",
         {
           event: 'order.created',
           order: {
-            id: order.id,
+            id: order.id.to_s,
             total_cents: order.total_cents,
-            status: order.status,
-            created_at: order.created_at,
+            status: order.status.to_s,
+            created_at: order.created_at.iso8601,
             customer: {
-              name: order.customer_name,
-              email: order.customer_email
+              name: order.customer_name.to_s,
+              email: order.customer_email.to_s
             }
           }
-        }
+        }.deep_stringify_keys
       )
 
       Rails.logger.info "ActionCable broadcast: New Order ##{order.id} for Vendor #{order.vendor.name}"

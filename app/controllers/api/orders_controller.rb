@@ -80,18 +80,20 @@ module Api
     end
 
     def broadcast_order_update(order)
+      vendor_id = order.vendor_id.to_s
+
       ActionCable.server.broadcast(
-        "vendor_orders_#{order.vendor.id}",
+        "vendor_orders_#{vendor_id}",
         {
           event: 'order.updated',
           order: {
-            id: order.id,
-            status: order.status,
-            refund_status: order.refund_status,
+            id: order.id.to_s,
+            status: order.status.to_s,
+            refund_status: order.refund_status.to_s,
             refund_amount_cents: order.refund_amount_cents,
-            refunded_at: order.refunded_at
+            refunded_at: order.refunded_at&.iso8601
           }
-        }
+        }.deep_stringify_keys
       )
     end
   end

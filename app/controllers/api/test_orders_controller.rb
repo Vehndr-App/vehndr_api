@@ -13,17 +13,19 @@ module Api
       )
       
       # Broadcast via ActionCable
+      vendor_id = vendor.id.to_s
+
       ActionCable.server.broadcast(
-        "vendor_orders_#{vendor.id}",
+        "vendor_orders_#{vendor_id}",
         {
           event: 'order.created',
           order: {
-            id: order.id,
+            id: order.id.to_s,
             total_cents: order.total_cents,
-            status: order.status,
-            created_at: order.created_at
+            status: order.status.to_s,
+            created_at: order.created_at.iso8601
           }
-        }
+        }.deep_stringify_keys
       )
       
       render json: { 
