@@ -571,7 +571,8 @@ module Api
       if order.persisted?
         order.create_from_cart_items!(items)
         # Broadcast to vendor
-        trigger_vendor_webhook(order)
+        # TODO: Fix Solid Cable serialization issue with custom vendor IDs
+        # trigger_vendor_webhook(order)
       else
         Rails.logger.error "Order creation validation failed: #{order.errors.full_messages.join(', ')}"
       end
@@ -608,7 +609,8 @@ module Api
       order.create_from_cart_items!(items)
 
       # Trigger webhook to frontend or external system for this vendor order
-      trigger_vendor_webhook(order)
+      # TODO: Fix Solid Cable serialization issue with custom vendor IDs
+      # trigger_vendor_webhook(order)
 
       order
     end
