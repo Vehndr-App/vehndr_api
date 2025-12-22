@@ -80,8 +80,8 @@ module Api
     end
 
     def broadcast_order_update(order)
-      VendorOrdersChannel.broadcast_to(
-        order.vendor,
+      ActionCable.server.broadcast(
+        "vendor_orders_#{order.vendor.id}",
         {
           event: 'order.updated',
           order: {

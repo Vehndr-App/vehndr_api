@@ -13,8 +13,8 @@ module Api
       )
       
       # Broadcast via ActionCable
-      VendorOrdersChannel.broadcast_to(
-        vendor,
+      ActionCable.server.broadcast(
+        "vendor_orders_#{vendor.id}",
         {
           event: 'order.created',
           order: {
