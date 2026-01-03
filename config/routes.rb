@@ -104,6 +104,7 @@ Rails.application.routes.draw do
       member do
         patch 'status', action: :update_status
         post 'cancel', action: :cancel
+        patch 'reschedule', action: :reschedule
       end
     end
   end
