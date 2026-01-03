@@ -17,6 +17,9 @@ class Vendor < ApplicationRecord
   has_many :cart_items, dependent: :destroy
   has_many :event_vendors, dependent: :destroy
   has_many :events, through: :event_vendors
+  has_many :employees, dependent: :destroy
+  has_many :vendor_availabilities, dependent: :destroy
+  has_many :bookings, dependent: :destroy
 
   # Validations
   validates :name, presence: true
@@ -75,6 +78,35 @@ class Vendor < ApplicationRecord
 
   def stripe_ready_for_checkout?
     can_process_payments?
+  end
+
+  # Booking availability methods
+  def available_time_slots_for_date(date)
+    availability = vendor_availabilities.find_by(day_of_week: date.wday)
+    return [] unless availability
+
+    all_slots = availability.generate_time_slots
+
+    # Return slots with their capacity information
+    all_slots.map do |slot|
+      capacity = availability.available_capacity_at(date, slot)
+      {
+        time: slot,
+        available: capacity > 0,
+        capacity: capacity
+      }
+    end
+  end
+
+  def has_availability_on?(date)
+    vendor_availabilities.exists?(day_of_week: date.wday)
+  end
+
+  def slot_available?(date, time_slot)
+    availability = vendor_availabilities.find_by(day_of_week: date.wday)
+    return false unless availability
+
+    availability.available_capacity_at(date, time_slot) > 0
   end
 
   private

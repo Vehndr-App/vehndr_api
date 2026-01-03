@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_12_18_000002) do
+ActiveRecord::Schema[8.0].define(version: 2026_01_02_233940) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -44,6 +44,28 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_18_000002) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
+  create_table "bookings", force: :cascade do |t|
+    t.string "vendor_id", null: false
+    t.string "product_id", null: false
+    t.uuid "order_item_id"
+    t.bigint "employee_id"
+    t.date "booking_date", null: false
+    t.time "start_time", null: false
+    t.time "end_time", null: false
+    t.string "status", default: "pending", null: false
+    t.string "customer_name"
+    t.string "customer_email"
+    t.string "customer_phone"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["order_item_id"], name: "index_bookings_on_order_item_id"
+    t.index ["product_id"], name: "index_bookings_on_product_id"
+    t.index ["status"], name: "index_bookings_on_status"
+    t.index ["vendor_id", "booking_date", "start_time"], name: "index_bookings_on_vendor_id_and_booking_date_and_start_time"
+    t.index ["vendor_id", "booking_date"], name: "index_bookings_on_vendor_id_and_booking_date"
+    t.index ["vendor_id"], name: "index_bookings_on_vendor_id"
+  end
+
   create_table "cart_items", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "cart_id", null: false
     t.string "product_id", null: false
@@ -65,6 +87,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_18_000002) do
     t.datetime "updated_at", null: false
     t.index ["session_id"], name: "index_carts_on_session_id"
     t.index ["user_id"], name: "index_carts_on_user_id"
+  end
+
+  create_table "employees", force: :cascade do |t|
+    t.string "vendor_id", null: false
+    t.string "name", null: false
+    t.string "email"
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["vendor_id", "email"], name: "index_employees_on_vendor_id_and_email", unique: true, where: "(email IS NOT NULL)"
+    t.index ["vendor_id"], name: "index_employees_on_vendor_id"
   end
 
   create_table "event_coordinators", id: :string, force: :cascade do |t|
@@ -188,11 +221,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_18_000002) do
     t.integer "price", null: false
     t.boolean "is_service", default: false
     t.integer "duration"
-    t.string "available_time_slots", default: [], array: true
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.vector "embedding", limit: 1536
-    t.string "booked_time_slots", default: [], array: true
     t.index ["is_service"], name: "index_products_on_is_service"
     t.index ["name"], name: "index_products_on_name"
     t.index ["vendor_id"], name: "index_products_on_vendor_id"
@@ -207,6 +238,19 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_18_000002) do
     t.datetime "updated_at", null: false
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["role"], name: "index_users_on_role"
+  end
+
+  create_table "vendor_availabilities", force: :cascade do |t|
+    t.string "vendor_id", null: false
+    t.integer "day_of_week", null: false
+    t.time "start_time", null: false
+    t.time "end_time", null: false
+    t.integer "slot_duration", default: 30, null: false
+    t.integer "employee_count", default: 1, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["vendor_id", "day_of_week"], name: "index_vendor_availabilities_on_vendor_id_and_day_of_week"
+    t.index ["vendor_id"], name: "index_vendor_availabilities_on_vendor_id"
   end
 
   create_table "vendors", id: :string, force: :cascade do |t|
@@ -234,10 +278,15 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_18_000002) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "bookings", "employees"
+  add_foreign_key "bookings", "order_items"
+  add_foreign_key "bookings", "products"
+  add_foreign_key "bookings", "vendors"
   add_foreign_key "cart_items", "carts"
   add_foreign_key "cart_items", "products"
   add_foreign_key "cart_items", "vendors"
   add_foreign_key "carts", "users"
+  add_foreign_key "employees", "vendors"
   add_foreign_key "event_coordinators", "users"
   add_foreign_key "event_vendors", "events"
   add_foreign_key "event_vendors", "vendors"
@@ -248,5 +297,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_18_000002) do
   add_foreign_key "password_reset_tokens", "users"
   add_foreign_key "product_options", "products"
   add_foreign_key "products", "vendors"
+  add_foreign_key "vendor_availabilities", "vendors"
   add_foreign_key "vendors", "users"
 end

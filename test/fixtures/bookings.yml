@@ -1,0 +1,27 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  vendor: one
+  product: one
+  order_item: one
+  employee: one
+  booking_date: 2026-01-02
+  start_time: 2026-01-02 17:31:24
+  end_time: 2026-01-02 17:31:24
+  status: MyString
+  customer_name: MyString
+  customer_email: MyString
+  customer_phone: MyString
+
+two:
+  vendor: two
+  product: two
+  order_item: two
+  employee: two
+  booking_date: 2026-01-02
+  start_time: 2026-01-02 17:31:24
+  end_time: 2026-01-02 17:31:24
+  status: MyString
+  customer_name: MyString
+  customer_email: MyString
+  customer_phone: MyString

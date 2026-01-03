@@ -1,0 +1,17 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  vendor: one
+  day_of_week: 1
+  start_time: 2026-01-02 17:31:19
+  end_time: 2026-01-02 17:31:19
+  slot_duration: 1
+  employee_count: 1
+
+two:
+  vendor: two
+  day_of_week: 1
+  start_time: 2026-01-02 17:31:19
+  end_time: 2026-01-02 17:31:19
+  slot_duration: 1
+  employee_count: 1

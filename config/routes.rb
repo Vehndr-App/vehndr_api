@@ -19,6 +19,19 @@ Rails.application.routes.draw do
           post 'refresh', to: 'stripe_connect#refresh_account'
         end
       end
+
+      # Vendor availability management
+      resources :availabilities, controller: 'vendor_availabilities', only: [:index, :show, :create, :update, :destroy] do
+        collection do
+          get 'time_slots', action: :time_slots
+        end
+      end
+
+      # Employee management
+      resources :employees, only: [:index, :show, :create, :update, :destroy]
+
+      # Bookings for vendor
+      resources :bookings, only: [:index, :show]
     end
 
     # Products
@@ -80,6 +93,17 @@ Rails.application.routes.draw do
       member do
         patch 'complete', to: 'orders#complete'
         post 'refund', to: 'orders#refund'
+      end
+    end
+
+    # Bookings - customer and vendor actions
+    resources :bookings, only: [:show] do
+      collection do
+        get 'my_bookings', action: :my_bookings
+      end
+      member do
+        patch 'status', action: :update_status
+        post 'cancel', action: :cancel
       end
     end
   end

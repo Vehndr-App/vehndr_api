@@ -43,24 +43,39 @@ class CartItem < ApplicationRecord
   end
 
   def validate_time_slot_availability
-    return unless selected_options['timeSlot'].present?
+    return unless selected_options['timeSlot'].present? && selected_options['date'].present?
 
     time_slot = selected_options['timeSlot']
-
-    # Check if time slot exists and is available (not booked)
-    unless product.time_slot_available?(time_slot)
-      errors.add(:selected_options, "Time slot #{time_slot} is not available")
+    date = begin
+      Date.parse(selected_options['date'])
+    rescue ArgumentError
+      errors.add(:selected_options, "Invalid date format")
       return
     end
 
-    # Check if time slot is in another cart (temporary reservation)
-    existing_bookings = CartItem.joins(:product, :cart)
-                                .where(products: { id: product.id })
+    # Check vendor availability for this date and time
+    unless vendor.slot_available?(date, time_slot)
+      errors.add(:selected_options, "Time slot #{time_slot} is not available on #{date}")
+      return
+    end
+
+    # Check if time slot is in another cart for the same date (temporary reservation)
+    existing_bookings = CartItem.joins(:cart)
+                                .where(vendor_id: vendor_id)
                                 .where.not(cart_id: cart_id)
                                 .where("selected_options->>'timeSlot' = ?", time_slot)
+                                .where("selected_options->>'date' = ?", selected_options['date'])
 
     if existing_bookings.exists?
-      errors.add(:selected_options, "Time slot #{time_slot} is already in another cart")
+      # Check if we're exceeding vendor capacity
+      availability = vendor.vendor_availabilities.find_by(day_of_week: date.wday)
+      if availability
+        capacity = availability.available_capacity_at(date, time_slot)
+        # Account for cart reservations
+        if capacity - existing_bookings.count <= 0
+          errors.add(:selected_options, "Time slot #{time_slot} is fully booked on #{date}")
+        end
+      end
     end
   end
 end
