@@ -456,7 +456,6 @@ module Api
 
       # Build session params
       session_params = {
-        payment_method_types: ['card'],
         line_items: line_items,
         mode: 'payment',
         payment_intent_data: {
